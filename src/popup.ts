@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const toggleSwitch = document.getElementById('toggleSwitch');
+  const toggleSwitch = document.getElementById(
+    'toggleSwitch'
+  ) as HTMLInputElement;
 
   chrome.storage.sync.get(
     'hideNonLowFodmap',
@@ -13,7 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.sync.set({ hideNonLowFodmap: shouldHide });
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.sendMessage(tabs[0].id, {
+      const tab = tabs[0];
+      chrome.tabs.sendMessage(tab.id as number, {
         action: 'toggleHide',
         hide: shouldHide,
       });

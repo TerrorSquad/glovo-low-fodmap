@@ -72,10 +72,10 @@ function checkProduct(productElement: HTMLDivElement) {
 
 function processProducts(hideNonLowFodmap: boolean = false) {
   // TODO: Check if the selector has changed in Chrome DevTools!
-  const productCards: NodeListOf<HTMLDivElement> = document.querySelectorAll(
-    'div[data-test-id="product-tile"]'
+  const productCards = document.querySelectorAll<HTMLDivElement>(
+    'div[data-testid="product-card-touchable"], div[data-test-id="product-tile"]'
   );
-  debugger;
+
   productCards.forEach((card) => {
     const status = checkProduct(card);
 
@@ -98,17 +98,58 @@ function processProducts(hideNonLowFodmap: boolean = false) {
   });
 }
 
+let debounceTimeout: number;
+
+// Funkcija koja će se pozivati kada se desi promena
+const handleMutations = () => {
+  // Debounce: Sačekaj 500ms nakon poslednje promene pre pokretanja
+  clearTimeout(debounceTimeout);
+  debounceTimeout = setTimeout(() => {
+    console.log('🔍 Promena detektovana, pokrećem skeniranje proizvoda...');
+    chrome.storage.sync.get('hideNonLowFodmap', (data) => {
+      processProducts(data.hideNonLowFodmap);
+    });
+  }, 500);
+};
+
+// Funkcija za pokretanje observer-a
+const startObserver = () => {
+  // Ciljni element koji posmatramo. Ovo je glavni kontejner za proizvode.
+  const targetNode = document.querySelector('.store__page__body');
+
+  if (!targetNode) {
+    console.warn(
+      'Nije pronađen targetNode (.store__page__body) za MutationObserver.'
+    );
+    // Pokušaj ponovo za sekund, jer se elementi možda još učitavaju
+    setTimeout(startObserver, 1000);
+    return;
+  }
+
+  // Konfiguracija za observer: pratimo dodavanje/uklanjanje elemenata u podstablu
+  const config: MutationObserverInit = { childList: true, subtree: true };
+
+  // Kreiranje observer instance sa našom callback funkcijom
+  const observer = new MutationObserver(handleMutations);
+
+  // Početak posmatranja
+  observer.observe(targetNode, config);
+  console.log('✅ MutationObserver je aktivan i posmatra promene.');
+};
+
+// --- AŽURIRANI START SKRIPTE ---
+
+// Osluškuj poruke iz popup-a ili background skripte za toggle
 chrome.runtime.onMessage.addListener((request) => {
   if (request.action === 'toggleHide') {
     processProducts(request.hide);
   }
 });
 
-chrome.storage.sync.get(
-  'hideNonLowFodmap',
-  (data: { hideNonLowFodmap: boolean }) => {
-    setTimeout(() => {
-      processProducts(data.hideNonLowFodmap);
-    }, 2000);
-  }
-);
+// Inicijalno pokretanje kada se stranica prvi put učita
+chrome.storage.sync.get('hideNonLowFodmap', (data) => {
+  setTimeout(() => {
+    processProducts(data.hideNonLowFodmap);
+    startObserver(); // Pokreni observer nakon prvog skeniranja
+  }, 2000);
+});

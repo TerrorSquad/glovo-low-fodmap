@@ -8,7 +8,8 @@ export default defineConfig({
     crx({ manifest }),
   ],
   build: {
-    sourcemap: true,
+    target: 'esnext',
+    sourcemap: 'inline',
     rollupOptions: {
       input: {
         content: 'src/content.ts',

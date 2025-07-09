@@ -1,18 +1,24 @@
 <!DOCTYPE html>
-<html>
+<html lang="sr">
 <head>
+  <meta charset="UTF-8">
   <title>FODMAP Helper</title>
-  <style>
-    body { width: 200px; font-family: sans-serif; text-align: center; }
-    label { display: flex; align-items: center; justify-content: space-between; padding: 10px; }
-  </style>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <h3>Low-FODMAP Filter</h3>
-  <label>
-    Sakrij ostale proizvode
-    <input type="checkbox" id="toggleSwitch">
-  </label>
-  <script src="popup.js"></script>
+  <div class="header">
+    <img src="icons/icon48.png" alt="icon" class="logo">
+    <h3>Low-FODMAP Filter</h3>
+  </div>
+
+  <div class="toggle-container">
+    <p>Sakrij neprikladne proizvode</p>
+    <label class="switch">
+      <input type="checkbox" id="toggleSwitch">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <script src="dist/popup.js"></script>
 </body>
 </html>

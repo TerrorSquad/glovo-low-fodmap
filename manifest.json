@@ -11,22 +11,19 @@
   "host_permissions": [
     "https://glovoapp.com/*"
   ],
-  "background": {
-    "service_worker": "dist/background.js"
+  "action": {
+    "default_popup": "popup.html"
   },
   "content_scripts": [
     {
       "matches": [
-        "https://glovoapp.com/rs/sr/*/*"
+        "https://glovoapp.com/*"
       ],
       "js": [
-        "dist/content.js"
+        "src/content.ts"
       ]
     }
   ],
-  "action": {
-    "default_popup": "popup.html"
-  },
   "commands": {
     "toggle-hide-products": {
       "suggested_key": {

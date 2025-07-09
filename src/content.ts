@@ -113,14 +113,16 @@ async function renderAllVisibleCards() {
   });
 }
 
-// --- POKRETANJE ---
-function start() {
-  injectCss();
-  // Skripta koja presreće zahteve
+function injectScript() {
   const injector = document.createElement("script");
-  injector.src = chrome.runtime.getURL("src/injector.js");
+  injector.src = chrome.runtime.getURL("injector.js");
   (document.head || document.documentElement).appendChild(injector);
   injector.onload = () => injector.remove();
+}
+
+function main() {
+  injectCss();
+  injectScript();
 
   window.addEventListener("message", (event) => {
     if (event.source === window && event.data?.type === "GVO_FODMAP_PRODUCTS") {
@@ -138,4 +140,4 @@ function start() {
   setInterval(renderAllVisibleCards, 2000);
 }
 
-start();
+main();

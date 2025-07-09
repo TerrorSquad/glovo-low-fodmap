@@ -1,6 +1,5 @@
 import type { GlovoProducts } from "./types/glovo";
 
-// src/injector.ts
 console.log("✅ FODMAP Helper: Injektor skripta je aktivna u MAIN svetu.");
 
 function extractProductsFromResponse(data: GlovoProducts): any[] {

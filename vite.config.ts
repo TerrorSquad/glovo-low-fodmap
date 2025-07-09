@@ -1,7 +1,6 @@
-// vite.config.ts
-import { defineConfig } from 'vite';
-import { crx } from '@crxjs/vite-plugin';
-import manifest from './manifest.json';
+import { crx } from "@crxjs/vite-plugin";
+import { defineConfig } from "vite";
+import manifest from "./manifest.json";
 
 export default defineConfig({
   plugins: [
@@ -16,6 +15,7 @@ export default defineConfig({
         content: 'src/content.ts',
         popup: 'popup.html',
         background: 'src/background.ts',
+        injector: 'src/injector.ts',
       },
       output: {
         entryFileNames: '[name].js',

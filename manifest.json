@@ -5,8 +5,7 @@
   "description": "Ističe Low-FODMAP proizvode i omogućava sakrivanje ostalih na Glovo prodavnicama.",
   "permissions": [
     "storage",
-    "activeTab",
-    "scripting"
+    "alarms"
   ],
   "host_permissions": [
     "https://glovoapp.com/*"
@@ -20,13 +19,13 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://glovoapp.com/*"],
-      "js": ["src/content.ts"]
-    },
-    {
-      "matches": ["https://glovoapp.com/*"],
-      "js": ["src/injector.ts"],
-      "world": "MAIN"
+      "matches": [
+        "https://glovoapp.com/*"
+      ],
+      "js": [
+        "src/content.ts",
+        "src/injector.ts"
+      ]
     }
   ],
   "commands": {
@@ -37,11 +36,5 @@
       },
       "description": "Sakrij/Prikaži Non-Low-FODMAP proizvode"
     }
-  },
-  "web_accessible_resources": [
-    {
-      "resources": [],
-      "matches": ["https://glovoapp.com/*"]
-    }
-  ]
+  }
 }

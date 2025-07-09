@@ -1,9 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
   const toggleSwitch = document.getElementById('toggleSwitch');
 
-  chrome.storage.sync.get('hideNonLowFodmap', (data) => {
-    toggleSwitch.checked = !!data.hideNonLowFodmap;
-  });
+  chrome.storage.sync.get(
+    'hideNonLowFodmap',
+    (data: { hideNonLowFodmap: boolean }) => {
+      toggleSwitch.checked = !!data.hideNonLowFodmap;
+    }
+  );
 
   toggleSwitch.addEventListener('change', () => {
     const shouldHide = toggleSwitch.checked;

@@ -51,7 +51,7 @@ const highFodmapKeywords = [
   'sladoled',
 ];
 
-function checkProduct(productElement) {
+function checkProduct(productElement: HTMLDivElement) {
   const productName = productElement.innerText.toLowerCase();
 
   const isHighFodmap = highFodmapKeywords.some((keyword) =>

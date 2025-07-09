@@ -12,7 +12,7 @@
     "https://glovoapp.com/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "dist/background.js"
   },
   "content_scripts": [
     {
@@ -20,7 +20,7 @@
         "https://glovoapp.com/rs/sr/*/*"
       ],
       "js": [
-        "content.js"
+        "dist/content.js"
       ]
     }
   ],

@@ -51,7 +51,7 @@ const highFodmapKeywords = [
   'sladoled',
 ];
 
-function checkProduct(productElement: HTMLDivElement) {
+function checkProduct(productElement: HTMLElement) {
   const productName = productElement.innerText.toLowerCase();
 
   const isHighFodmap = highFodmapKeywords.some((keyword) =>
@@ -71,30 +71,36 @@ function checkProduct(productElement: HTMLDivElement) {
 }
 
 function processProducts(hideNonLowFodmap: boolean = false) {
-  // TODO: Check if the selector has changed in Chrome DevTools!
-  const productCards = document.querySelectorAll<HTMLDivElement>(
-    'div[data-testid="product-card-touchable"], div[data-test-id="product-tile"]'
-  );
+  // Pronalazimo sve sekcije sa proizvodima na stranici
+  const productSections =
+    document.querySelectorAll<HTMLElement>('.grid__content');
 
-  productCards.forEach((card) => {
-    const status = checkProduct(card);
+  productSections.forEach((section) => {
+    // TODO: Check if the selector has changed in Chrome DevTools!
+    const productCards = Array.from(
+      section.querySelectorAll<HTMLElement>('section[type="PRODUCT_TILE"')
+    );
+    debugger;
+    productCards.forEach((card) => {
+      const status = checkProduct(card);
 
-    card.style.border = 'none';
-    card.style.display = 'block';
+      card.style.border = 'none';
+      card.style.display = 'block';
 
-    if (status === 'low') {
-      card.style.border = '3px solid #4CAF50';
-    } else if (status === 'high') {
-      card.style.border = '3px solid #F44336';
-      if (hideNonLowFodmap) {
-        card.style.display = 'none';
+      if (status === 'low') {
+        card.style.border = '3px solid #4CAF50';
+      } else if (status === 'high') {
+        card.style.border = '3px solid #F44336';
+        if (hideNonLowFodmap) {
+          card.style.display = 'none';
+        }
+      } else {
+        // unknown
+        if (hideNonLowFodmap) {
+          card.style.display = 'none';
+        }
       }
-    } else {
-      // unknown
-      if (hideNonLowFodmap) {
-        card.style.display = 'none';
-      }
-    }
+    });
   });
 }
 

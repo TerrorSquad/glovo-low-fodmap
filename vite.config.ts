@@ -10,6 +10,7 @@ export default defineConfig({
   build: {
     target: 'esnext',
     sourcemap: 'inline',
+    minify: false,
     rollupOptions: {
       input: {
         content: 'src/content.ts',

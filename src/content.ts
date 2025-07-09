@@ -1,172 +1,141 @@
-import lowFodmapData from './data/lowFodmap.json';
-import highFodmapData from './data/highFodmap.json';
-
-// --- POMOĆNE FUNKCIJE I PRIPREMA PODATAKA ---
-
-function normalizeText(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/č|ć/g, 'c')
-    .replace(/š/g, 's')
-    .replace(/đ/g, 'dj')
-    .replace(/ž/g, 'z');
-}
-debugger;
-const preparedLowFodmap = {
-  keywords: Array.from(new Set(lowFodmapData.keywords.map(normalizeText))),
-  synonyms: Object.fromEntries(
-    Object.entries(lowFodmapData.synonyms).map(([k, v]) => [
-      normalizeText(k),
-      normalizeText(v),
-    ])
-  ),
-};
-
-const preparedHighFodmap = {
-  keywords: Array.from(new Set(highFodmapData.keywords.map(normalizeText))),
-  synonyms: Object.fromEntries(
-    Object.entries(highFodmapData.synonyms).map(([k, v]) => [
-      normalizeText(k),
-      normalizeText(v),
-    ])
-  ),
-};
+// src/content.ts
+import { db, type FodmapStatus, type Product } from "./db";
 
 const injectCss = (): void => {
-  const styleId = 'fodmap-helper-styles';
+  const styleId = "fodmap-helper-styles";
   if (document.getElementById(styleId)) return;
   const css = `
-    .fodmap-low-highlight {
-      box-shadow: 0 0 8px 3px rgba(76, 175, 80, 0.6) !important;
-      transform: scale(1.02);
-      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    }
-    .fodmap-badge {
-      position: absolute; top: 8px; right: 8px; width: 24px; height: 24px;
-      background-color: #28a745; border-radius: 50%; display: flex;
-      align-items: center; justify-content: center; z-index: 10;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.3); cursor: help;
-    }
-    .fodmap-badge svg { width: 14px; height: 14px; fill: white; }
+    .fodmap-low-highlight { box-shadow: 0 0 7px 2px rgba(76, 175, 80, 0.55); border-radius: 16px; }
+    .fodmap-badge { position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; background-color: #28a745; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 10; border: 1px solid white; cursor: help; }
+    .fodmap-badge svg { width: 12px; height: 12px; fill: white; }
+    .fodmap-badge-high { background-color: #dc3545 !important; }
   `;
-  const style = document.createElement('style');
+  const style = document.createElement("style");
   style.id = styleId;
   style.textContent = css;
   document.head.appendChild(style);
 };
 
-// --- GLAVNA LOGIKA ---
+async function handleIncomingProducts(
+  products: Product[],
+): Promise<void> {
+  const incomingProducts: Product[] = products.map((p) => ({
+    name: p.name,
+    externalId: p.externalId,
+    price: p.price,
+    category: p.category || "",
+    status: "PENDING",
+  }));
 
-function checkProduct(
-  productText: string,
-  sectionText: string
-): 'low' | 'high' | 'unknown' {
-  const combinedText = normalizeText(`${sectionText} ${productText}`);
-  const hasMatch = (data: typeof preparedHighFodmap) => {
-    for (const keyword of data.keywords)
-      if (combinedText.includes(keyword)) return true;
-    for (const synonym in data.synonyms)
-      if (
-        combinedText.includes(synonym) &&
-        data.keywords.has(data.synonyms[synonym])
-      )
-        return true;
-    return false;
-  };
-  if (hasMatch(preparedHighFodmap)) return 'high';
-  if (hasMatch(preparedLowFodmap)) return 'low';
-  return 'unknown';
+  const incomingIds = incomingProducts.map((p) => p.externalId);
+
+  try {
+    // Započinjemo transakciju za čitanje i pisanje u 'products' tabelu
+    await db.transaction("rw", db.products, async () => {
+      // 1. Unutar transakcije, čitamo koji proizvodi već postoje
+      const existingProducts = await db.products
+        .where("externalId")
+        .anyOf(incomingIds)
+        .toArray();
+      const existingIds = new Set(existingProducts.map((p) => p.externalId));
+
+      // 2. Filtriramo samo one koji zaista ne postoje
+      const newProductsToDb = incomingProducts.filter(
+        (p) => !existingIds.has(p.externalId),
+      );
+
+      if (newProductsToDb.length > 0) {
+        // 3. Dodajemo samo nove proizvode. Ovo je sada bezbedno.
+        await db.products.bulkAdd(newProductsToDb);
+        console.log(
+          `[Content] Uspešno dodato ${newProductsToDb.length} novih proizvoda u bazu.`,
+        );
+
+        // Javljamo pozadinskoj skripti da ima posla
+        chrome.runtime.sendMessage({ action: "newProductsFound" });
+      }
+    });
+  } catch (error) {
+    // Dexie će automatski uhvatiti greške poput ConstraintError unutar transakcije
+    console.error("[Content] Greška unutar Dexie transakcije:", error);
+  }
 }
 
-/**
- * Pametna funkcija koja prolazi kroz sve proizvode i menja samo one koje mora.
- */
-function processProducts(hideNonLowFodmap: boolean): void {
+function applyStylingToCard(card: HTMLElement, status: FodmapStatus) {
+  if (card.dataset.fodmapStatus === status) return; // Optimizacija
+
+  // Reset
+  card.classList.remove("fodmap-low-highlight");
+  card.querySelector(".fodmap-badge")?.remove();
+  card.style.position = "relative";
+
+  if (status === "UNKNOWN" || status === "PENDING") return;
+
+  const badge = document.createElement("div");
+  badge.className = "fodmap-badge";
+
+  if (status === "LOW") {
+    card.classList.add("fodmap-low-highlight");
+    badge.title = "Low-FODMAP";
+    badge.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z"/></svg>`;
+  } else if (status === "HIGH") {
+    badge.classList.add("fodmap-badge-high");
+    badge.title = "High-FODMAP";
+    badge.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M24 20.188l-8.315-8.209 8.2-8.282-3.697-3.697-8.212 8.318-8.31-8.203-3.666 3.666 8.321 8.24-8.206 8.313 3.666 3.666 8.237-8.318 8.285 8.203z"/></svg>`;
+  }
+
+  card.appendChild(badge);
+  card.dataset.fodmapStatus = status;
+}
+
+async function renderAllVisibleCards() {
   const allCards = document.querySelectorAll<HTMLElement>(
-    'section[type="PRODUCT_TILE"]'
+    'section[type="PRODUCT_TILE"]',
+  );
+  const productNames = Array.from(allCards).map((card) =>
+    card.innerText.split("\n")[0].trim(),
   );
 
+  if (productNames.length === 0) return;
+
+  const productsFromDb = await db.products
+    .where("name")
+    .anyOf(productNames)
+    .toArray();
+  const dbMap = new Map(productsFromDb.map((p) => [p.name, p]));
+
   allCards.forEach((card) => {
-    const sectionTitleEl = card
-      .closest('.grid')
-      ?.querySelector<HTMLElement>('.grid__title');
-    const sectionText = sectionTitleEl ? sectionTitleEl.innerText : '';
-    const currentStatus = checkProduct(card.innerText, sectionText);
-
-    const lastStatus = card.dataset.fodmapStatus;
-    const isHidden = card.style.display === 'none';
-    const shouldBeHidden = currentStatus !== 'low' && hideNonLowFodmap;
-
-    // KLJUČNA OPTIMIZACIJA: Ako je stanje već ispravno, ne diraj DOM.
-    if (lastStatus === currentStatus && isHidden === shouldBeHidden) {
-      return;
+    const name = card.innerText.split("\n")[0].trim();
+    const product = dbMap.get(name);
+    if (product) {
+      applyStylingToCard(card, product.status);
     }
-
-    // Reset stilova pre primene
-    card.classList.remove('fodmap-low-highlight');
-    card.querySelector('.fodmap-badge')?.remove();
-    card.style.position = 'relative'; // osiguraj da je uvek tu
-
-    // Primeni stilove za LOW status
-    if (currentStatus === 'low') {
-      card.classList.add('fodmap-low-highlight');
-      const badge = document.createElement('div');
-      badge.className = 'fodmap-badge';
-      badge.title = 'Low-FODMAP friendly';
-      badge.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z"/></svg>`;
-      card.appendChild(badge);
-    }
-
-    // Primeni sakrivanje/prikazivanje
-    card.style.display = shouldBeHidden ? 'none' : 'block';
-
-    // Sačuvaj novi status na kartici
-    card.dataset.fodmapStatus = currentStatus;
   });
 }
 
-// --- OBSERVER I INICIJALIZACIJA ---
-
-let debounceTimeout: number;
-
-const debouncedProcess = () => {
-  chrome.storage.sync.get({ hideNonLowFodmap: false }, (data) => {
-    processProducts(!!data.hideNonLowFodmap);
-  });
-};
-
-const handleMutations = (): void => {
-  clearTimeout(debounceTimeout);
-  debounceTimeout = setTimeout(debouncedProcess, 500);
-};
-
-const start = (): void => {
+// --- POKRETANJE ---
+function start() {
   injectCss();
+  // Skripta koja presreće zahteve
+  const injector = document.createElement("script");
+  injector.src = chrome.runtime.getURL("src/injector.js");
+  (document.head || document.documentElement).appendChild(injector);
+  injector.onload = () => injector.remove();
 
-  const targetNode = document.querySelector('.store__page__body');
+  window.addEventListener("message", (event) => {
+    if (event.source === window && event.data?.type === "GVO_FODMAP_PRODUCTS") {
+      handleIncomingProducts(event.data.products);
+    }
+  });
 
-  if (targetNode) {
-    const observer = new MutationObserver(handleMutations);
-    observer.observe(targetNode, { childList: true, subtree: true });
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message.action === "refreshStyles") {
+      renderAllVisibleCards();
+    }
+  });
 
-    // Inicijalno skeniranje
-    handleMutations();
-    console.log('✅ FODMAP Helper je aktivan (automatski mod).');
-  } else {
-    setTimeout(start, 500); // Probaj ponovo ako stranica još nije spremna
-  }
-};
-
-chrome.runtime.onMessage.addListener((message) => {
-  if (message.action === 'toggleHide') {
-    // Kada se promeni toggle, obriši statuse sa svih kartica da bi se ponovo obradile
-    const allCards = document.querySelectorAll<HTMLElement>(
-      'section[type="PRODUCT_TILE"]'
-    );
-    allCards.forEach((card) => delete card.dataset.fodmapStatus);
-    // Odmah pokreni obradu
-    processProducts(message.hide);
-  }
-});
+  // Periodično osvežavanje stilova na osnovu stanja u bazi
+  setInterval(renderAllVisibleCards, 2000);
+}
 
 start();

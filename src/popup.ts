@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const toggleSwitch = document.getElementById(
     'toggleSwitch'
   ) as HTMLInputElement;
+  const syncButton = document.getElementById('syncButton') as HTMLButtonElement;
 
   chrome.storage.sync.get(
     'hideNonLowFodmap',
@@ -21,5 +22,16 @@ document.addEventListener('DOMContentLoaded', () => {
         hide: shouldHide,
       });
     });
+  });
+
+
+
+  // Logika za novo dugme za sinhronizaciju
+  syncButton.addEventListener('click', () => {
+    console.log('Popup: Kliknuto dugme za sinhronizaciju.');
+    // Šalje poruku pozadinskoj skripti da pokrene sinhronizaciju
+    chrome.runtime.sendMessage({ action: "syncWithApi" });
+    // Zatvori popup da ne smeta
+    window.close();
   });
 });

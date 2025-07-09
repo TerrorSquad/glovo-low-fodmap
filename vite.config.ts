@@ -9,18 +9,6 @@ export default defineConfig({
   build: {
     target: 'esnext',
     sourcemap: 'inline',
-    minify: false,
-    rollupOptions: {
-      input: {
-        content: 'src/content.ts',
-        popup: 'popup.html',
-        background: 'src/background.ts',
-        injector: 'src/injector.ts',
-      },
-      output: {
-        entryFileNames: '[name].js',
-        format: 'es',
-      },
-    },
+    minify: false
   }
 });

@@ -1,6 +1,23 @@
 // src/background.ts
-import { db, type Product } from "./db";
 
+import { setupWorker } from "msw/browser";
+import { db, type Product } from "./db";
+import { handlers } from "./mocks/handlers";
+
+// --- MSW POKRETANJE (SAMO ZA DEVELOPMENT) ---
+async function initMocks() {
+  debugger;
+  if (true || import.meta.env.DEV) {
+    const worker = setupWorker(...handlers);
+    await worker.start({
+      serviceWorker: { url: "/mockServiceWorker.js" },
+      onUnhandledRequest: "bypass",
+    });
+    console.log("[MSW] Mock Service Worker je pokrenut.");
+  }
+}
+
+initMocks();
 // TODO: Implement API endpoint
 const API_ENDPOINT = "https://tvoj-api.com/classify"; // OBAVEZNO ZAMENI
 const ALARM_NAME = "classifyPendingProducts";
@@ -52,6 +69,17 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_NAME) classifyPendingProducts();
 });
 
-chrome.runtime.onMessage.addListener((message) => {
-  if (message.action === "newProductsFound") classifyPendingProducts();
+// Listener za poruke od popup-a i content skripte
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (
+    message.action === "newProductsFound" ||
+    message.action === "syncWithApi"
+  ) {
+    if (message.action === "syncWithApi") {
+      console.log("[Background] Primljen manuelni zahtev za sinhronizaciju.");
+    }
+    classifyPendingProducts();
+    // Vraćamo true da bi znali da je odgovor asinhron
+    return true;
+  }
 });

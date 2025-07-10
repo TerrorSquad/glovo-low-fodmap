@@ -8,14 +8,15 @@
     "alarms"
   ],
   "host_permissions": [
-    "https://glovoapp.com/*"
+    "https://glovoapp.com/*",
+    "http://localhost/*"
   ],
-  "action": {
-    "default_popup": "popup.html"
-  },
   "background": {
     "service_worker": "src/background.ts",
     "type": "module"
+  },
+  "action": {
+    "default_popup": "index.html"
   },
   "content_scripts": [
     {

@@ -1,7 +1,6 @@
-// src/db.ts
-import Dexie, { type Table } from "dexie";
+import Dexie, { type Table } from 'dexie';
 
-export type FodmapStatus = "LOW" | "HIGH" | "UNKNOWN" | "PENDING";
+export type FodmapStatus = 'LOW' | 'HIGH' | 'UNKNOWN' | 'PENDING';
 
 export interface Product {
   externalId: string;
@@ -15,9 +14,9 @@ export class FodmapDatabase extends Dexie {
   products!: Table<Product>;
 
   constructor() {
-    super("fodmapDatabase");
-    this.version(6).stores({
-      products: "++id, &externalId, name, status",
+    super('fodmapDatabase');
+    this.version(7).stores({
+      products: '++id, &externalId, name, status',
     });
   }
 }

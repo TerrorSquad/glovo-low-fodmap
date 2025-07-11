@@ -1,41 +1,77 @@
-// src/background.ts
+import type { Product } from './db';
 
-import { setupWorker } from "msw/browser";
-import { db, type Product } from "./db";
-import { handlers } from "./mocks/handlers";
+// TODO: Implement API endpoint
+const API_ENDPOINT = 'https://tvoj-api.com/classify';
 
-// --- MSW POKRETANJE (SAMO ZA DEVELOPMENT) ---
-async function initMocks() {
-  debugger;
-  if (true || import.meta.env.DEV) {
-    const worker = setupWorker(...handlers);
-    await worker.start({
-      serviceWorker: { url: "/mockServiceWorker.js" },
-      onUnhandledRequest: "bypass",
+const logger = {
+  log: (message: unknown, ...optionalParams: unknown[]) =>
+    sendMessageToContent('log', message, ...optionalParams),
+  warn: (message: unknown, ...optionalParams: unknown[]) =>
+    sendMessageToContent('warn', message, ...optionalParams),
+
+  error: (message: unknown, ...optionalParams: unknown[]) => {
+    const serializedParams = optionalParams.map((param) => {
+      if (param instanceof Error) {
+        return {
+          name: param.name,
+          message: param.message,
+          stack: param.stack,
+        };
+      }
+      return param;
     });
-    console.log("[MSW] Mock Service Worker je pokrenut.");
-  }
+    sendMessageToContent('error', message, ...serializedParams);
+  },
+};
+
+function sendMessageToContent(
+  level: 'log' | 'warn' | 'error',
+  message: unknown,
+  ...optionalParams: unknown[]
+) {
+  chrome.tabs.query({ active: true, url: 'https://glovoapp.com/*' }, (tabs) => {
+    if (tabs[0]?.id) {
+      chrome.tabs.sendMessage(tabs[0].id, {
+        action: 'log',
+        payload: {
+          level,
+          message,
+          optionalParams,
+        },
+      });
+    }
+  });
 }
 
-initMocks();
-// TODO: Implement API endpoint
-const API_ENDPOINT = "https://tvoj-api.com/classify"; // OBAVEZNO ZAMENI
-const ALARM_NAME = "classifyPendingProducts";
-
-async function classifyPendingProducts() {
+async function fetchAndProcessProducts() {
   try {
-    const productsToClassify = await db.products
-      .where("status")
-      .equals("PENDING")
-      .toArray();
-    if (productsToClassify.length === 0) return;
+    const tabs = await chrome.tabs.query({
+      active: true,
+      url: 'https://glovoapp.com/*',
+    });
+    if (!tabs[0] || !tabs[0].id) {
+      logger.log('Nema aktivnog Glovo taba.');
+      return;
+    }
+    const tab = tabs[0];
 
-    console.log(
-      `[Background] Šaljem ${productsToClassify.length} proizvoda na API...`,
+    const productsToClassify: Product[] = await chrome.tabs.sendMessage(
+      tab.id as number,
+      { action: 'getPendingProducts' }
     );
+
+    if (!productsToClassify || productsToClassify.length === 0) {
+      logger.log('Nema proizvoda za klasifikaciju iz content skripte.');
+      return;
+    }
+
+    logger.log(
+      `Dobijeno ${productsToClassify.length} proizvoda od content skripte. Šaljem na API...`
+    );
+
     const response = await fetch(API_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ products: productsToClassify }),
     });
 
@@ -43,43 +79,22 @@ async function classifyPendingProducts() {
     const { results } = (await response.json()) as { results: Product[] };
 
     if (results && results.length > 0) {
-      await db.products.bulkPut(results);
-      console.log(
-        `[Background] Ažurirano ${results.length} proizvoda iz API odgovora.`,
-      );
-
-      chrome.tabs.query({ url: "https://glovoapp.com/*" }, (tabs) => {
-        tabs.forEach(
-          (tab) =>
-            tab.id &&
-            chrome.tabs.sendMessage(tab.id, { action: "refreshStyles" }),
-        );
+      await chrome.tabs.sendMessage(tab.id as number, {
+        action: 'updateStatuses',
+        data: results,
       });
+      logger.log(`Poslati ažurirani statusi nazad na content skriptu.`);
     }
   } catch (error) {
-    console.error("[Background] Greška prilikom klasifikacije:", error);
+    logger.error('Greška u glavnom toku:', error);
   }
 }
 
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.alarms.create(ALARM_NAME, { periodInMinutes: 15, delayInMinutes: 1 });
-});
-
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === ALARM_NAME) classifyPendingProducts();
-});
-
-// Listener za poruke od popup-a i content skripte
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (
-    message.action === "newProductsFound" ||
-    message.action === "syncWithApi"
-  ) {
-    if (message.action === "syncWithApi") {
-      console.log("[Background] Primljen manuelni zahtev za sinhronizaciju.");
-    }
-    classifyPendingProducts();
-    // Vraćamo true da bi znali da je odgovor asinhron
+// Listener from popup
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.action === 'syncWithApi') {
+    logger.log('Primljen manuelni zahtev za sinhronizaciju.');
+    fetchAndProcessProducts();
     return true;
   }
 });

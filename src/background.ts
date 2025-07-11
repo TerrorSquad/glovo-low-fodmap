@@ -1,4 +1,4 @@
-import type { Product } from './db';
+import  { type Product } from './db';
 
 // TODO: Implement API endpoint
 const API_ENDPOINT = 'https://tvoj-api.com/classify';

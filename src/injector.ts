@@ -1,4 +1,4 @@
-import type { GlovoProducts } from "./types/glovo";
+import  { type GlovoProducts } from "./types/glovo";
 
 console.log("✅ FODMAP Helper: Injektor skripta je aktivna u MAIN svetu.");
 

@@ -16,6 +16,11 @@
     {
       "matches": ["https://glovoapp.com/*"],
       "js": ["src/content.ts"]
+    },
+    {
+      "matches": ["https://glovoapp.com/*"],
+      "js": ["src/injector.ts"],
+      "world": "MAIN"
     }
   ],
   "commands": {

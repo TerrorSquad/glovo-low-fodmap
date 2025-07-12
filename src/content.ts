@@ -113,12 +113,6 @@ async function renderAllVisibleCards() {
 function main() {
   injectCss()
 
-  const injector = document.createElement('script')
-  injector.type = 'module'
-  injector.src = chrome.runtime.getURL('src/injector.ts.js')
-  ;(document.head || document.documentElement).appendChild(injector)
-  injector.onload = () => injector.remove()
-
   // Listener za poruke od injector.js
   window.addEventListener('message', (event) => {
     if (event.source === window && event.data?.type === 'GVO_FODMAP_PRODUCTS') {

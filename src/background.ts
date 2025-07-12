@@ -97,4 +97,9 @@ chrome.runtime.onMessage.addListener((message) => {
     fetchAndProcessProducts()
     return true
   }
+  if (message.action === 'newProductsFound') {
+    logger.log('Primljena nova lista proizvoda za klasifikaciju.')
+    fetchAndProcessProducts()
+    return true
+  }
 })

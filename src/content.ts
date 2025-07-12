@@ -127,14 +127,7 @@ function main() {
         message.payload.level || 'log'
       const msg = message.payload.msg || ''
       const optionalParams = message.payload.optionalParams || []
-      const style =
-        'background: #333; color: #fff; padding: 2px 6px; border-radius: 3px;'
-      console[level](
-        `%cBG%c ${msg}`,
-        style,
-        'background: transparent; color: inherit;',
-        ...optionalParams,
-      )
+      console[level](`BG ${msg}`, ...optionalParams)
     }
 
     if (message.action === 'getPendingProducts') {

@@ -29,6 +29,7 @@ function sendMessageToContent(
   message: unknown,
   ...optionalParams: unknown[]
 ) {
+  console[level](`BG ${message}`, ...optionalParams)
   chrome.tabs.query({ active: true, url: 'https://glovoapp.com/*' }, (tabs) => {
     if (tabs[0]?.id) {
       chrome.tabs.sendMessage(tabs[0].id, {

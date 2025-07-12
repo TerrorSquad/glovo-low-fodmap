@@ -125,7 +125,7 @@ function main() {
     if (message.action === 'log') {
       const level: 'log' | 'info' | 'warn' | 'error' =
         message.payload.level || 'log'
-      const msg = message.payload.msg || ''
+      const msg = message.payload.message || ''
       const optionalParams = message.payload.optionalParams || []
       console[level](`BG ${msg}`, ...optionalParams)
     }

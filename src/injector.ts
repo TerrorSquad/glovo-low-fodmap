@@ -1,4 +1,4 @@
-import type { Product, ProductsResponse } from './types/glovo'
+import { type Product, type ProductsResponse } from './types/glovo'
 
 console.log('✅ FODMAP Helper: Injector script is active in the MAIN world.')
 

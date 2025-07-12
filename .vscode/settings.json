@@ -1,8 +1,12 @@
 {
-  "json.schemas": [
-    {
-      "fileMatch": ["manifest.json"],
-      "url": "https://json.schemastore.org/chrome-manifest.json"
-    }
-  ]
+	"json.schemas": [
+		{
+			"fileMatch": ["manifest.json"],
+			"url": "https://json.schemastore.org/chrome-manifest.json"
+		}
+	],
+	"editor.defaultFormatter": "biomejs.biome",
+	"[typescript]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	}
 }

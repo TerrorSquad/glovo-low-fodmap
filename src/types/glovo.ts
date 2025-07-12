@@ -1,65 +1,72 @@
-export interface GlovoProducts {
-  type: string;
-  data: GlovoProductsData;
+export interface Image {
+  imageUrl: string
+  imageServiceId: string
 }
 
-export interface GlovoProductsData {
-  title: string;
-  body:  Body[];
+export interface Tracking {
+  increment: number
+  productSaleType: string
+  isWeightedProduct: boolean
+  subCategory: string
+  subCategoryId: string
 }
 
-export interface Body {
-  id:   string;
-  type: string;
-  data: BodyData;
+export interface ProductsResponse {
+  type: string
+  data: ProductsResponseData
 }
 
-export interface BodyData {
-  title:    string;
-  slug:     string;
-  elements: Element[];
-  tracking: FluffyTracking;
-  columns:  number;
+export interface ProductsResponseData {
+  title: string
+  body: ProductsResponseBody[]
 }
 
-export interface Element {
-  type: string;
-  data: ElementData;
+export interface ProductsResponseBody {
+  id: string
+  type: string
+  data: ProductsResponseBodyData
 }
 
-export interface ElementData {
-  id:              number;
-  externalId:      string;
-  storeProductId:  string;
-  name:            string;
-  description:     string;
-  price:           number;
-  priceInfo:       PriceInfo;
-  images:          any[];
-  tags:            any[];
-  attributeGroups: any[];
-  promotions:      any[];
-  indicators:      any[];
-  sponsored:       boolean;
-  restricted:      boolean;
-  tracking:        PurpleTracking;
-  showQuantifiers: boolean;
+export interface ProductsResponseBodyData {
+  title: string
+  slug: string
+  elements: ProductElement[]
+  columns: number
+}
+
+export interface ProductElement {
+  type: string
+  data: Product
+}
+
+export interface Product {
+  /**
+   * The category of the product, e.g., "Dairy", "Fruits", etc.
+   * This is set based on the title of the data object in the response.
+   * If the title is not available, it defaults to 'Uncategorized'.
+   * @example "Dairy"
+   */
+  category: string
+  id: number
+  externalId: string
+  storeProductId: string
+  name: string
+  description: string
+  price: number
+  priceInfo: PriceInfo
+  images: unknown[]
+  tags: unknown[]
+  attributeGroups: unknown[]
+  promotions: unknown[]
+  indicators: unknown[]
+  sponsored: boolean
+  restricted: boolean
+  tracking: Tracking
+  showQuantifiers: boolean
 }
 
 export interface PriceInfo {
-  amount:       number;
-  currencyCode: string;
-  displayText:  string;
-}
-
-export interface PurpleTracking {
-  increment:         number;
-  productSaleType:   string;
-  isWeightedProduct: boolean;
-  subCategory:       string;
-  subCategoryId:     string;
-}
-
-export interface FluffyTracking {
-  collectionSectionId: number;
+  amount: number
+  currencyCode: string
+  displayText: string
 }

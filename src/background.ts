@@ -1,7 +1,7 @@
-import  { type Product } from './db';
+import type { Product } from './db'
 
 // TODO: Implement API endpoint
-const API_ENDPOINT = 'https://tvoj-api.com/classify';
+const API_ENDPOINT = 'https://tvoj-api.com/classify'
 
 const logger = {
   log: (message: unknown, ...optionalParams: unknown[]) =>
@@ -16,13 +16,13 @@ const logger = {
           name: param.name,
           message: param.message,
           stack: param.stack,
-        };
+        }
       }
-      return param;
-    });
-    sendMessageToContent('error', message, ...serializedParams);
+      return param
+    })
+    sendMessageToContent('error', message, ...serializedParams)
   },
-};
+}
 
 function sendMessageToContent(
   level: 'log' | 'warn' | 'error',
@@ -38,9 +38,9 @@ function sendMessageToContent(
           message,
           optionalParams,
         },
-      });
+      })
     }
-  });
+  })
 }
 
 async function fetchAndProcessProducts() {
@@ -48,53 +48,53 @@ async function fetchAndProcessProducts() {
     const tabs = await chrome.tabs.query({
       active: true,
       url: 'https://glovoapp.com/*',
-    });
+    })
     if (!tabs[0] || !tabs[0].id) {
-      logger.log('Nema aktivnog Glovo taba.');
-      return;
+      logger.log('Nema aktivnog Glovo taba.')
+      return
     }
-    const tab = tabs[0];
+    const tab = tabs[0]
 
     const productsToClassify: Product[] = await chrome.tabs.sendMessage(
       tab.id as number,
-      { action: 'getPendingProducts' }
-    );
+      { action: 'getPendingProducts' },
+    )
 
     if (!productsToClassify || productsToClassify.length === 0) {
-      logger.log('Nema proizvoda za klasifikaciju iz content skripte.');
-      return;
+      logger.log('Nema proizvoda za klasifikaciju iz content skripte.')
+      return
     }
 
     logger.log(
-      `Dobijeno ${productsToClassify.length} proizvoda od content skripte. Šaljem na API...`
-    );
+      `Dobijeno ${productsToClassify.length} proizvoda od content skripte. Šaljem na API...`,
+    )
 
     const response = await fetch(API_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ products: productsToClassify }),
-    });
+    })
 
-    if (!response.ok) throw new Error(`API greška: ${response.statusText}`);
-    const { results } = (await response.json()) as { results: Product[] };
+    if (!response.ok) throw new Error(`API greška: ${response.statusText}`)
+    const { results } = (await response.json()) as { results: Product[] }
 
     if (results && results.length > 0) {
       await chrome.tabs.sendMessage(tab.id as number, {
         action: 'updateStatuses',
         data: results,
-      });
-      logger.log(`Poslati ažurirani statusi nazad na content skriptu.`);
+      })
+      logger.log(`Poslati ažurirani statusi nazad na content skriptu.`)
     }
   } catch (error) {
-    logger.error('Greška u glavnom toku:', error);
+    logger.error('Greška u glavnom toku:', error)
   }
 }
 
 // Listener from popup
 chrome.runtime.onMessage.addListener((message) => {
   if (message.action === 'syncWithApi') {
-    logger.log('Primljen manuelni zahtev za sinhronizaciju.');
-    fetchAndProcessProducts();
-    return true;
+    logger.log('Primljen manuelni zahtev za sinhronizaciju.')
+    fetchAndProcessProducts()
+    return true
   }
-});
+})

@@ -18,7 +18,6 @@ const injectCss = (): void => {
     .fodmap-badge { position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; background-color: #28a745; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 10; border: 1px solid white; cursor: help; }
     .fodmap-badge svg { width: 12px; height: 12px; fill: white; }
     .fodmap-badge-high { background-color: #dc3545 !important; }
-    .fodmap-badge-unknown { background-color: #ffc107 !important; }
   `
   const style = document.createElement('style')
   style.id = styleId
@@ -63,11 +62,11 @@ async function handleIncomingProducts(
         chrome.runtime.sendMessage({ action: 'newProductsFound' })
       }
     })
-
-    tagVisibleCards(products)
   } catch (error) {
     console.error('[Content] Greška unutar Dexie transakcije:', error)
   }
+
+  tagVisibleCards(products)
 }
 
 /**
@@ -80,9 +79,11 @@ function tagVisibleCards(products: InjectedProductData[]): void {
   const productMap = new Map(products.map((p) => [p.name.trim(), p.externalId]))
 
   allCards.forEach((card) => {
-    const cardName = card.children[0].children[1].innerText
-      .split('\n')[0]
-      .trim()
+    const cardName = card
+      .querySelector('span.tile__description')
+      ?.textContent?.trim()
+    if (!cardName) return
+
     const externalId = productMap.get(cardName)
     if (externalId) {
       card.dataset.externalId = externalId.toString()
@@ -94,7 +95,6 @@ function tagVisibleCards(products: InjectedProductData[]): void {
  * Glavna funkcija koja ažurira stilove na stranici.
  */
 async function updatePageStyles() {
-  // section[type="PRODUCT_TILE"][data-external-id]:not([data-fodmap-status="HIGH"]):not([data-fodmap-status="LOW"])
   const allCards = document.querySelectorAll<HTMLElement>(
     'section[type="PRODUCT_TILE"][data-external-id]',
   )
@@ -118,6 +118,8 @@ async function updatePageStyles() {
       applyStylingToCard(card, product.status)
     }
   })
+
+  console.log(`[Content] Ažurirani stilovi za ${allCards.length} kartica.`)
 }
 
 function applyStylingToCard(card: HTMLElement, status: FodmapStatus) {
@@ -146,17 +148,12 @@ function applyStylingToCard(card: HTMLElement, status: FodmapStatus) {
     badge.title = 'High-FODMAP'
     badge.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M24 20.188l-8.315-8.209 8.2-8.282-3.697-3.697-8.212 8.318-8.31-8.203-3.666 3.666 8.321 8.24-8.206 8.313 3.666 3.666 8.237-8.318 8.285 8.203z"/></svg>`
     card.appendChild(badge)
-  } else if (status === 'UNKNOWN') {
-    const badge = document.createElement('div')
-    badge.className = 'fodmap-badge fodmap-badge-unknown'
-    badge.title = 'Unknown FODMAP status'
-    badge.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2c-5.523 0-10 4.477-10 10s4.477 10 10 10 10-4.477 10-10-4.477-10-10-10zm1 15h-2v-2h2v2zm0-4h-2v-6h2v6z"/></svg>`
-    card.appendChild(badge)
   }
 
   // Primeni sakrivanje/prikazivanje
   card.style.display = shouldBeHidden ? 'none' : 'block'
   card.dataset.fodmapStatus = status
+  card.dataset.fodmapStyleApplied = 'true'
 }
 
 // --- POKRETANJE ---
@@ -244,6 +241,8 @@ function main() {
     hideNonLowFodmap = !!data.hideNonLowFodmap
     setInterval(updatePageStyles, 1000)
   })
+
+  // TODO: Pokreni inicijalno ažuriranje stilova
 }
 
 main()

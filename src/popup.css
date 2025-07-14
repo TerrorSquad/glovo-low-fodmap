@@ -1,9 +1,10 @@
-/* popup.css */
 body {
-  width: 220px;
-  background-color: #f9f9f9;
-  margin: 0;
+  width: 230px;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
   padding: 12px;
+  background-color: #f9f9f9;
   color: #333;
 }
 
@@ -21,7 +22,6 @@ body {
   font-size: 16px;
   font-weight: 600;
 }
-
 .logo {
   width: 24px;
   height: 24px;
@@ -39,20 +39,17 @@ body {
   font-size: 14px;
 }
 
-/* Stil za prekidač */
 .switch {
   position: relative;
   display: inline-block;
   width: 44px;
   height: 24px;
 }
-
 .switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
-
 .slider {
   position: absolute;
   cursor: pointer;
@@ -64,7 +61,6 @@ body {
   transition: 0.4s;
   border-radius: 24px;
 }
-
 .slider:before {
   position: absolute;
   content: "";
@@ -76,15 +72,46 @@ body {
   transition: 0.4s;
   border-radius: 50%;
 }
-
 input:checked + .slider {
-  background-color: #4caf50; /* Zelena boja kada je aktivno */
+  background-color: #4caf50;
 }
-
-input:focus + .slider {
-  box-shadow: 0 0 1px #4caf50;
-}
-
 input:checked + .slider:before {
   transform: translateX(20px);
+}
+
+.action-container {
+  padding-top: 10px;
+  border-top: 1px solid #e0e0e0;
+  margin-top: 10px;
+}
+
+.action-button {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  background-color: #007bff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.action-button:hover {
+  background-color: #0069d9;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.action-button:active {
+  background-color: #0056b3;
+  transform: scale(0.98);
+}
+
+.action-button svg {
+  stroke-width: 3;
 }

@@ -1,0 +1,62 @@
+import { ProductManager } from './ProductManager'
+import { StyleManager } from './StyleManager'
+import type { InjectedProductData } from './types'
+
+/**
+ * Handles DOM operations for product cards
+ */
+export class CardManager {
+  private static readonly CARD_SELECTOR = 'section[type="PRODUCT_TILE"]'
+  private static readonly CARD_NAME_SELECTOR = 'span.tile__description'
+
+  static tagVisibleCards(products: InjectedProductData[]): void {
+    const untaggedCards = document.querySelectorAll<HTMLElement>(
+      `${CardManager.CARD_SELECTOR}:not([data-external-id])`,
+    )
+    const productMap = new Map(
+      products.map((p) => [p.name.trim(), p.externalId]),
+    )
+
+    untaggedCards.forEach((card) => {
+      const cardName = card
+        .querySelector(CardManager.CARD_NAME_SELECTOR)
+        ?.textContent?.trim()
+
+      if (!cardName) return
+
+      const externalId = productMap.get(cardName)
+      if (externalId) {
+        card.dataset.externalId = externalId.toString()
+      }
+    })
+  }
+
+  static getTaggedCards(): HTMLElement[] {
+    return Array.from(
+      document.querySelectorAll<HTMLElement>(
+        `${CardManager.CARD_SELECTOR}[data-external-id]`,
+      ),
+    )
+  }
+
+  static async updateAllCards(hideNonLowFodmap: boolean): Promise<void> {
+    const allCards = CardManager.getTaggedCards()
+    if (allCards.length === 0) return
+
+    const externalIds = allCards.map((card) => card.dataset.externalId!)
+    const dbMap = await ProductManager.getProductsByExternalIds(externalIds)
+
+    allCards.forEach((card) => {
+      const externalId = card.dataset.externalId
+      if (!externalId) return
+
+      const product = dbMap.get(externalId)
+      if (product) {
+        const shouldBeHidden = product.status !== 'LOW' && hideNonLowFodmap
+        StyleManager.applyToCard(card, product.status, shouldBeHidden)
+      }
+    })
+
+    console.log(`[Content] Updated styles for ${allCards.length} cards.`)
+  }
+}

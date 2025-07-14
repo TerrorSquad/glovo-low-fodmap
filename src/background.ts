@@ -1,7 +1,6 @@
 import { type Product } from './db'
 
-// TODO: Implement API endpoint
-const API_ENDPOINT = 'https://tvoj-api.com/classify'
+const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT
 
 const logger = {
   log: (message: unknown, ...optionalParams: unknown[]) =>

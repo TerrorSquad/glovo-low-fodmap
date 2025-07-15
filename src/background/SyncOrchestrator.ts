@@ -1,4 +1,5 @@
 import { Config } from '../shared/Config'
+import type { Product } from '../shared/db'
 import { ErrorHandler } from '../shared/ErrorHandler'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import { ContentMessenger } from './ContentMessenger'
@@ -71,14 +72,21 @@ export class SyncOrchestrator {
    * Performs a sync operation (either manual or periodic)
    */
   async syncPendingProducts(): Promise<void> {
-    return await this.performSync('manual')
+    return await this.performSync('manual', 'syncPendingProducts')
+  }
+
+  async syncUnknownProducts(): Promise<void> {
+    return await this.performSync('unknown', 'syncUnknownProducts')
   }
 
   private async performPeriodicSync(): Promise<void> {
     return await this.performSync('periodic')
   }
 
-  private async performSync(syncType: 'manual' | 'periodic'): Promise<void> {
+  private async performSync(
+    syncType: 'manual' | 'periodic' | 'unknown',
+    caller?: string,
+  ): Promise<void> {
     return await PerformanceMonitor.measureAsync(
       'syncPendingProducts',
       async () => {
@@ -113,7 +121,13 @@ export class SyncOrchestrator {
             return
           }
 
-          const pendingProducts = await ContentMessenger.getPendingProducts()
+          let pendingProducts: Product[]
+          if (syncType === 'unknown') {
+            pendingProducts = await ContentMessenger.getUnknownProducts()
+          } else {
+            pendingProducts = await ContentMessenger.getPendingProducts()
+          }
+
           if (!pendingProducts.length) {
             if (syncType === 'manual') {
               ErrorHandler.logInfo(
@@ -156,7 +170,7 @@ export class SyncOrchestrator {
       },
       {
         threshold: 2000, // Log if sync takes > 2 seconds
-        metadata: { syncType },
+        metadata: { syncType, caller },
       },
     )
   }

@@ -103,6 +103,16 @@ export class ProductManager {
     )
   }
 
+  static async getUnknownProducts(): Promise<Product[]> {
+    return (
+      (await ErrorHandler.safeExecute(
+        async () => db.products.where('status').equals('UNKNOWN').toArray(),
+        'Content',
+        [],
+      )) || []
+    )
+  }
+
   static async getProductsByExternalIds(
     externalIds: string[],
   ): Promise<Map<string, Product>> {

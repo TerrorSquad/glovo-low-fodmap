@@ -4,6 +4,7 @@ import { SyncOrchestrator } from './SyncOrchestrator'
 
 export type BackgroundMessageAction =
   | 'syncWithApi'
+  | 'syncUnknownProducts'
   | 'newProductsFound'
   | 'getSyncStatus'
 
@@ -35,6 +36,10 @@ export class BackgroundMessageHandler {
           switch (message.action) {
             case 'syncWithApi':
               this.handleManualSync()
+              return { success: true }
+
+            case 'syncUnknownProducts':
+              this.handleUnknownProductsSync()
               return { success: true }
 
             case 'newProductsFound':
@@ -77,6 +82,11 @@ export class BackgroundMessageHandler {
       'Received new products list for classification',
     )
     this.syncOrchestrator.syncPendingProducts()
+  }
+
+  private handleUnknownProductsSync(): void {
+    ErrorHandler.logInfo('Background', 'Received unknown products sync request')
+    this.syncOrchestrator.syncUnknownProducts()
   }
 
   setupListener(): void {

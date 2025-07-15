@@ -35,6 +35,10 @@ export class MessageHandler {
             this.handleGetPendingProducts(sendResponse)
             return true
 
+          case 'getUnknownProducts':
+            this.handleGetUnknownProducts(sendResponse)
+            return true
+
           case 'updateStatuses':
             this.handleUpdateStatuses(message.data, sendResponse)
             return true
@@ -88,6 +92,29 @@ export class MessageHandler {
         } catch (error) {
           ErrorHandler.logError('Content', error, {
             context: 'Getting pending products',
+          })
+          sendResponse([])
+        }
+      },
+    )
+  }
+
+  private async handleGetUnknownProducts(
+    sendResponse: (response?: any) => void,
+  ): Promise<void> {
+    return await PerformanceMonitor.measureAsync(
+      'handleGetUnknownProducts',
+      async () => {
+        try {
+          const products = await ProductManager.getUnknownProducts()
+          sendResponse(products)
+          ErrorHandler.logInfo(
+            'Content',
+            `Sent ${products.length} unknown products to background`,
+          )
+        } catch (error) {
+          ErrorHandler.logError('Content', error, {
+            context: 'Getting unknown products',
           })
           sendResponse([])
         }

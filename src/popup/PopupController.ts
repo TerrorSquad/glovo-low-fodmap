@@ -8,6 +8,7 @@ import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 export class PopupController {
   private toggleSwitch: HTMLInputElement
   private syncButton: HTMLButtonElement
+  private syncUnknownButton: HTMLButtonElement
   private statusElement: HTMLElement
   private statusIcon: HTMLElement
   private statusText: HTMLElement
@@ -26,6 +27,7 @@ export class PopupController {
       'hideNonLowFodmap',
     ) as HTMLInputElement
     this.syncButton = document.getElementById('syncButton') as HTMLButtonElement
+    this.syncUnknownButton = document.getElementById('syncUnknownButton') as HTMLButtonElement
 
     // Status elements
     this.statusElement = document.getElementById('status') as HTMLElement
@@ -54,7 +56,7 @@ export class PopupController {
       'clearData',
     ) as HTMLButtonElement
 
-    if (!this.toggleSwitch || !this.syncButton) {
+    if (!this.toggleSwitch || !this.syncButton || !this.syncUnknownButton) {
       throw new Error('Required DOM elements not found')
     }
   }
@@ -120,6 +122,7 @@ export class PopupController {
   private setupEventListeners(): void {
     this.toggleSwitch.addEventListener('change', this.handleToggleChange)
     this.syncButton.addEventListener('click', this.handleSyncClick)
+    this.syncUnknownButton.addEventListener('click', this.handleSyncUnknownClick)
 
     // Debug event listeners
     this.healthCheckButton.addEventListener('click', this.handleHealthCheck)
@@ -177,6 +180,32 @@ export class PopupController {
       ErrorHandler.logError('Popup', error, { context: 'Sync button click' })
       this.updateStatus('Sync failed', 'error')
       this.syncButton.disabled = false
+    }
+  }
+
+  private handleSyncUnknownClick = async (): Promise<void> => {
+    try {
+      this.updateStatus('Syncing unknown products...', 'warning')
+      this.syncUnknownButton.disabled = true
+
+      ErrorHandler.logInfo('Popup', 'Sync unknown products button clicked')
+      chrome.runtime.sendMessage({ action: 'syncUnknownProducts' })
+
+      // Wait a moment then refresh statistics
+      setTimeout(async () => {
+        await this.loadStatistics()
+        this.updateStatus('Unknown products sync completed', 'healthy')
+        this.syncUnknownButton.disabled = false
+
+        // Reset status after 3 seconds
+        setTimeout(() => {
+          this.updateStatus('Ready', 'healthy')
+        }, 3000)
+      }, 2000)
+    } catch (error) {
+      ErrorHandler.logError('Popup', error, { context: 'Sync unknown products button click' })
+      this.updateStatus('Unknown products sync failed', 'error')
+      this.syncUnknownButton.disabled = false
     }
   }
 
@@ -269,6 +298,12 @@ export class PopupController {
     if ((event.ctrlKey || event.metaKey) && event.key === 's') {
       event.preventDefault()
       this.handleSyncClick()
+    }
+
+    // Ctrl/Cmd + U: Sync unknown products
+    if ((event.ctrlKey || event.metaKey) && event.key === 'u') {
+      event.preventDefault()
+      this.handleSyncUnknownClick()
     }
 
     // Space: Toggle switch

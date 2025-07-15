@@ -64,6 +64,38 @@ export class ContentMessenger {
     )
   }
 
+  static async getUnknownProducts(): Promise<Product[]> {
+    return await PerformanceMonitor.measureAsync(
+      'getUnknownProducts',
+      async () => {
+        const tab = await ContentMessenger.findActiveGlovoTab()
+        if (!tab?.id) {
+          ErrorHandler.logInfo(
+            'Background',
+            'No active Glovo tab found for unknown products',
+          )
+          return []
+        }
+
+        try {
+          const products = await ContentMessenger.sendToContent(tab.id, {
+            action: 'getUnknownProducts',
+          })
+          ErrorHandler.logInfo(
+            'Background',
+            `Retrieved ${products?.length || 0} unknown products`,
+          )
+          return products || []
+        } catch (error) {
+          ErrorHandler.logError('Background', error, {
+            context: 'Getting unknown products',
+          })
+          return []
+        }
+      },
+    )
+  }
+
   static async updateProductStatuses(results: Product[]): Promise<void> {
     return await PerformanceMonitor.measureAsync(
       'updateProductStatuses',

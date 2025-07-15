@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom component styles */
+@layer components {
+  .popup-container {
+    @apply w-80 p-4 font-system text-sm leading-relaxed;
+  }
+
+  .popup-header {
+    @apply flex items-center gap-2 mb-4;
+  }
+
+  .popup-logo {
+    @apply w-6 h-6 bg-fodmap-green rounded flex items-center justify-center text-white font-bold text-xs;
+  }
+
+  .popup-title {
+    @apply font-semibold text-lg;
+  }
+
+  .popup-section {
+    @apply mb-4 pb-4 border-b border-gray-200;
+  }
+
+  .popup-section:last-child {
+    @apply border-b-0 mb-0;
+  }
+
+  .section-title {
+    @apply m-0 mb-2 text-sm font-semibold text-gray-800;
+  }
+
+  .toggle-container {
+    @apply flex items-center gap-2;
+  }
+
+  .custom-switch {
+    @apply relative w-11 h-6;
+  }
+
+  .custom-switch input {
+    @apply opacity-0 w-0 h-0;
+  }
+
+  .slider {
+    @apply absolute cursor-pointer inset-0 bg-gray-300 rounded-full transition-colors duration-300;
+  }
+
+  .slider:before {
+    @apply absolute content-[''] h-4 w-4 left-1 bottom-1 bg-white rounded-full transition-transform duration-300;
+  }
+
+  .custom-switch input:checked + .slider {
+    @apply bg-fodmap-green;
+  }
+
+  .custom-switch input:checked + .slider:before {
+    @apply translate-x-4;
+  }
+
+  .btn {
+    @apply bg-fodmap-green text-white border-none py-2 px-4 rounded cursor-pointer text-sm w-full mb-2 transition-colors duration-200 hover:bg-green-600;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-500 hover:bg-gray-600;
+  }
+
+  .btn-small {
+    @apply py-1 px-2 text-xs w-auto mr-2 mb-0;
+  }
+
+  .status-container {
+    @apply flex items-center gap-2 p-2 bg-gray-50 rounded text-xs;
+  }
+
+  .status-icon {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .status-icon.healthy {
+    @apply bg-green-600;
+  }
+
+  .status-icon.warning {
+    @apply bg-yellow-500;
+  }
+
+  .status-icon.error {
+    @apply bg-red-600;
+  }
+
+  .debug-section {
+    @apply border-t-2 border-gray-200 pt-4;
+  }
+
+  .stats-grid {
+    @apply grid grid-cols-2 gap-2 text-xs;
+  }
+
+  .stat-card {
+    @apply text-center p-2 bg-gray-50 rounded;
+  }
+
+  .stat-value {
+    @apply font-semibold text-lg text-fodmap-green;
+  }
+
+  .stat-label {
+    @apply text-gray-600 mt-0.5;
+  }
+}

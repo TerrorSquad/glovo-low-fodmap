@@ -1,3 +1,4 @@
+import './styles/tailwind.css'
 import { PopupController } from './popup/PopupController'
 
 // Initialize popup when DOM is ready

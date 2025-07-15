@@ -3,209 +3,17 @@
 <head>
   <meta charset="utf-8">
   <title>FODMAP Helper</title>
-  <style>
-    body {
-      width: 320px;
-      padding: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 14px;
-      line-height: 1.4;
-      margin: 0;
-    }
-    
-    .header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    
-    .logo {
-      width: 24px;
-      height: 24px;
-      background: #4CAF50;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-      font-size: 12px;
-    }
-    
-    .title {
-      font-weight: 600;
-      font-size: 16px;
-    }
-    
-    .section {
-      margin-bottom: 16px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid #eee;
-    }
-    
-    .section:last-child {
-      border-bottom: none;
-      margin-bottom: 0;
-    }
-    
-    .section h3 {
-      margin: 0 0 8px 0;
-      font-size: 14px;
-      font-weight: 600;
-      color: #333;
-    }
-    
-    .toggle {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .switch {
-      position: relative;
-      width: 44px;
-      height: 24px;
-    }
-    
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ccc;
-      transition: .4s;
-      border-radius: 24px;
-    }
-    
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 18px;
-      width: 18px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: .4s;
-      border-radius: 50%;
-    }
-    
-    input:checked + .slider {
-      background-color: #4CAF50;
-    }
-    
-    input:checked + .slider:before {
-      transform: translateX(20px);
-    }
-    
-    .button {
-      background: #4CAF50;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-      width: 100%;
-      margin-bottom: 8px;
-    }
-    
-    .button:hover {
-      background: #45a049;
-    }
-    
-    .button.secondary {
-      background: #6c757d;
-    }
-    
-    .button.secondary:hover {
-      background: #5a6268;
-    }
-    
-    .button.small {
-      padding: 4px 8px;
-      font-size: 12px;
-      width: auto;
-      margin: 0 4px 0 0;
-    }
-    
-    .status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px;
-      background: #f8f9fa;
-      border-radius: 4px;
-      font-size: 12px;
-    }
-    
-    .status-icon {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-    
-    .status-icon.healthy {
-      background: #28a745;
-    }
-    
-    .status-icon.warning {
-      background: #ffc107;
-    }
-    
-    .status-icon.error {
-      background: #dc3545;
-    }
-    
-    .debug-section {
-      border-top: 2px solid #eee;
-      padding-top: 16px;
-    }
-    
-    .stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      font-size: 12px;
-    }
-    
-    .stat {
-      text-align: center;
-      padding: 8px;
-      background: #f8f9fa;
-      border-radius: 4px;
-    }
-    
-    .stat-value {
-      font-weight: 600;
-      font-size: 16px;
-      color: #4CAF50;
-    }
-    
-    .stat-label {
-      color: #666;
-      margin-top: 2px;
-    }
-  </style>
 </head>
-<body>
-  <div class="header">
-    <div class="logo">F</div>
-    <div class="title">FODMAP Helper</div>
+<body class="popup-container">
+  <div class="popup-header">
+    <div class="popup-logo">F</div>
+    <div class="popup-title">FODMAP Helper</div>
   </div>
 
-  <div class="section">
-    <h3>Settings</h3>
-    <div class="toggle">
-      <label class="switch">
+  <div class="popup-section">
+    <h3 class="section-title">Settings</h3>
+    <div class="toggle-container">
+      <label class="custom-switch">
         <input type="checkbox" id="hideNonLowFodmap">
         <span class="slider"></span>
       </label>
@@ -213,37 +21,37 @@
     </div>
   </div>
 
-  <div class="section">
-    <h3>Actions</h3>
-    <button class="button" id="syncButton">Sync Products</button>
-    <div class="status" id="status">
+  <div class="popup-section">
+    <h3 class="section-title">Actions</h3>
+    <button class="btn" id="syncButton">Sync Products</button>
+    <div class="status-container" id="status">
       <div class="status-icon healthy" id="statusIcon"></div>
       <span id="statusText">Ready</span>
     </div>
   </div>
 
-  <div class="section">
-    <h3>Statistics</h3>
-    <div class="stats">
-      <div class="stat">
+  <div class="popup-section">
+    <h3 class="section-title">Statistics</h3>
+    <div class="stats-grid">
+      <div class="stat-card">
         <div class="stat-value" id="totalProducts">-</div>
         <div class="stat-label">Total Products</div>
       </div>
-      <div class="stat">
+      <div class="stat-card">
         <div class="stat-value" id="lowFodmapCount">-</div>
         <div class="stat-label">Low FODMAP</div>
       </div>
     </div>
   </div>
 
-  <div class="section debug-section">
-    <h3>Debug Tools</h3>
-    <button class="button small secondary" id="healthCheck">Health Check</button>
-    <button class="button small secondary" id="diagnostics">Full Report</button>
-    <button class="button small secondary" id="exportData">Export Data</button>
-    <button class="button small secondary" id="clearData">Clear Data</button>
+  <div class="popup-section debug-section">
+    <h3 class="section-title">Debug Tools</h3>
+    <button class="btn btn-small btn-secondary" id="healthCheck">Health Check</button>
+    <button class="btn btn-small btn-secondary" id="diagnostics">Full Report</button>
+    <button class="btn btn-small btn-secondary" id="exportData">Export Data</button>
+    <button class="btn btn-small btn-secondary" id="clearData">Clear Data</button>
     
-    <div style="margin-top: 8px; font-size: 11px; color: #666; line-height: 1.3;">
+    <div class="mt-2 text-xs text-gray-600 leading-tight">
       <strong>Shortcuts:</strong> Space=Toggle, ⌘S=Sync, ⌘R=Refresh, H=Health, D=Debug
     </div>
   </div>

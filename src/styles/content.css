@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Content script specific styles */
+@layer components {
+  .fodmap-low {
+    @apply border-2 border-green-500 bg-green-50;
+  }
+
+  .fodmap-high {
+    @apply border-2 border-red-500 bg-red-50;
+  }
+
+  .fodmap-medium {
+    @apply border-2 border-yellow-500 bg-yellow-50;
+  }
+
+  .fodmap-unknown {
+    @apply border-2 border-gray-400 bg-gray-50;
+  }
+
+  .fodmap-hidden {
+    @apply opacity-30 pointer-events-none;
+  }
+}

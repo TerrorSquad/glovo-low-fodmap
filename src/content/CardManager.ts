@@ -1,3 +1,4 @@
+import { Config } from '../shared/Config'
 import { ErrorHandler } from '../shared/ErrorHandler'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import { type InjectedProductData } from '../shared/types'
@@ -8,8 +9,8 @@ import { StyleManager } from './StyleManager'
  * Handles DOM operations for product cards
  */
 export class CardManager {
-  private static readonly CARD_SELECTOR = 'section[type="PRODUCT_TILE"]'
-  private static readonly CARD_NAME_SELECTOR = 'span.tile__description'
+  private static readonly CARD_SELECTOR = Config.SELECTORS.CARD
+  private static readonly CARD_NAME_SELECTOR = Config.SELECTORS.CARD_NAME
 
   static tagVisibleCards(products: InjectedProductData[]): void {
     PerformanceMonitor.measure('tagVisibleCards', () => {

@@ -1,3 +1,4 @@
+import { Config } from '../shared/Config'
 import { type FodmapStatus } from '../shared/db'
 import { ErrorHandler } from '../shared/ErrorHandler'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
@@ -6,7 +7,7 @@ import { PerformanceMonitor } from '../shared/PerformanceMonitor'
  * Handles CSS injection and styling for FODMAP indicators
  */
 export class StyleManager {
-  private static readonly STYLE_ID = 'fodmap-helper-styles'
+  private static readonly STYLE_ID = Config.CSS_CLASSES.STYLE_ID
   private static readonly CSS = `
     .fodmap-low-highlight {
       box-shadow: 0 0 7px 2px rgba(76, 175, 80, 0.55);

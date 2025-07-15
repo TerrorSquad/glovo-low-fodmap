@@ -1,45 +1,40 @@
+import { Logger } from './Logger'
+
 /**
  * Centralized error handling and logging utilities
  */
 export class ErrorHandler {
-  private static readonly ERROR_PREFIX = '[FODMAP Helper]'
-
   static logError(
     context: string,
     error: unknown,
-    ...details: unknown[]
+    metadata?: Record<string, unknown>,
   ): void {
     const errorMessage = error instanceof Error ? error.message : String(error)
-    const stack = error instanceof Error ? error.stack : undefined
-
-    console.error(
-      `${ErrorHandler.ERROR_PREFIX} ${context}:`,
-      errorMessage,
-      ...details,
-    )
-    if (stack) {
-      console.error('Stack trace:', stack)
-    }
+    Logger.error(context, errorMessage, error, metadata)
   }
 
   static logWarning(
     context: string,
     message: string,
-    ...details: unknown[]
+    metadata?: Record<string, unknown>,
   ): void {
-    console.warn(
-      `${ErrorHandler.ERROR_PREFIX} ${context}:`,
-      message,
-      ...details,
-    )
+    Logger.warn(context, message, metadata)
   }
 
   static logInfo(
     context: string,
     message: string,
-    ...details: unknown[]
+    metadata?: Record<string, unknown>,
   ): void {
-    console.log(`${ErrorHandler.ERROR_PREFIX} ${context}:`, message, ...details)
+    Logger.info(context, message, metadata)
+  }
+
+  static logDebug(
+    context: string,
+    message: string,
+    metadata?: Record<string, unknown>,
+  ): void {
+    Logger.debug(context, message, metadata)
   }
 
   static async safeExecute<T>(

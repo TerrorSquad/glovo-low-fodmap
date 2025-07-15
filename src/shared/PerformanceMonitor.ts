@@ -1,4 +1,5 @@
-import { ErrorHandler } from './ErrorHandler'
+import { Config } from './Config'
+import { Logger } from './Logger'
 
 /**
  * Performance monitoring utilities
@@ -7,14 +8,18 @@ export class PerformanceMonitor {
   private static timers = new Map<string, number>()
 
   static startTimer(name: string): void {
+    if (!Config.PERFORMANCE_MONITORING) return
+
     PerformanceMonitor.timers.set(name, performance.now())
-    ErrorHandler.logInfo('Performance', `Started timer: ${name}`)
+    Logger.debug('Performance', `Started timer: ${name}`)
   }
 
   static endTimer(name: string): number {
+    if (!Config.PERFORMANCE_MONITORING) return 0
+
     const startTime = PerformanceMonitor.timers.get(name)
     if (!startTime) {
-      ErrorHandler.logWarning('Performance', `Timer "${name}" was not started`)
+      Logger.warn('Performance', `Timer "${name}" was not started`)
       return 0
     }
 
@@ -22,7 +27,7 @@ export class PerformanceMonitor {
     const duration = endTime - startTime
     PerformanceMonitor.timers.delete(name)
 
-    ErrorHandler.logInfo('Performance', `${name}: ${duration.toFixed(2)}ms`)
+    Logger.perf('Performance', name, duration)
     return duration
   }
 
@@ -54,9 +59,11 @@ export class PerformanceMonitor {
   }
 
   static logMemoryUsage(): void {
+    if (!Config.MEMORY_MONITORING) return
+
     if ('memory' in performance) {
       const memory = (performance as any).memory
-      ErrorHandler.logInfo('Performance', 'Memory usage:', {
+      Logger.info('Performance', 'Memory usage', {
         used: `${(memory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
         total: `${(memory.totalJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
         limit: `${(memory.jsHeapSizeLimit / 1024 / 1024).toFixed(2)} MB`,

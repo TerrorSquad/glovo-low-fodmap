@@ -1,3 +1,5 @@
+import { ErrorHandler } from '../shared/ErrorHandler'
+import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import { type InjectedProductData } from '../shared/types'
 import { ProductManager } from './ProductManager'
 import { StyleManager } from './StyleManager'
@@ -10,23 +12,34 @@ export class CardManager {
   private static readonly CARD_NAME_SELECTOR = 'span.tile__description'
 
   static tagVisibleCards(products: InjectedProductData[]): void {
-    const untaggedCards = document.querySelectorAll<HTMLElement>(
-      `${CardManager.CARD_SELECTOR}:not([data-external-id])`,
-    )
-    const productMap = new Map(
-      products.map((p) => [p.name.trim(), p.externalId]),
-    )
+    PerformanceMonitor.measure('tagVisibleCards', () => {
+      try {
+        const untaggedCards = document.querySelectorAll<HTMLElement>(
+          `${CardManager.CARD_SELECTOR}:not([data-external-id])`,
+        )
+        const productMap = new Map(
+          products.map((p) => [p.name.trim(), p.externalId]),
+        )
 
-    untaggedCards.forEach((card) => {
-      const cardName = card
-        .querySelector(CardManager.CARD_NAME_SELECTOR)
-        ?.textContent?.trim()
+        untaggedCards.forEach((card) => {
+          const cardName = card
+            .querySelector(CardManager.CARD_NAME_SELECTOR)
+            ?.textContent?.trim()
 
-      if (!cardName) return
+          if (!cardName) return
 
-      const externalId = productMap.get(cardName)
-      if (externalId) {
-        card.dataset.externalId = externalId.toString()
+          const externalId = productMap.get(cardName)
+          if (externalId) {
+            card.dataset.externalId = externalId.toString()
+          }
+        })
+
+        ErrorHandler.logInfo(
+          'Content',
+          `Tagged ${untaggedCards.length} cards with external IDs`,
+        )
+      } catch (error) {
+        ErrorHandler.logError('Content', error, { context: 'Card tagging' })
       }
     })
   }
@@ -40,23 +53,34 @@ export class CardManager {
   }
 
   static async updateAllCards(hideNonLowFodmap: boolean): Promise<void> {
-    const allCards = CardManager.getTaggedCards()
-    if (allCards.length === 0) return
+    return await PerformanceMonitor.measureAsync('updateAllCards', async () => {
+      try {
+        const allCards = CardManager.getTaggedCards()
+        if (allCards.length === 0) return
 
-    const externalIds = allCards.map((card) => card.dataset.externalId!)
-    const dbMap = await ProductManager.getProductsByExternalIds(externalIds)
+        const externalIds = allCards.map((card) => card.dataset.externalId!)
+        const dbMap = await ProductManager.getProductsByExternalIds(externalIds)
 
-    allCards.forEach((card) => {
-      const externalId = card.dataset.externalId
-      if (!externalId) return
+        allCards.forEach((card) => {
+          const externalId = card.dataset.externalId
+          if (!externalId) return
 
-      const product = dbMap.get(externalId)
-      if (product) {
-        const shouldBeHidden = product.status !== 'LOW' && hideNonLowFodmap
-        StyleManager.applyToCard(card, product.status, shouldBeHidden)
+          const product = dbMap.get(externalId)
+          if (product) {
+            const shouldBeHidden = product.status !== 'LOW' && hideNonLowFodmap
+            StyleManager.applyToCard(card, product.status, shouldBeHidden)
+          }
+        })
+
+        ErrorHandler.logInfo(
+          'Content',
+          `Updated styles for ${allCards.length} cards`,
+        )
+      } catch (error) {
+        ErrorHandler.logError('Content', error, {
+          context: 'Card style update',
+        })
       }
     })
-
-    console.log(`[Content] Updated styles for ${allCards.length} cards.`)
   }
 }

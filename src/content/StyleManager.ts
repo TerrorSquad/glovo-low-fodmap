@@ -1,4 +1,6 @@
 import { type FodmapStatus } from '../shared/db'
+import { ErrorHandler } from '../shared/ErrorHandler'
+import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 
 /**
  * Handles CSS injection and styling for FODMAP indicators
@@ -37,12 +39,17 @@ export class StyleManager {
   `
 
   static inject(): void {
-    if (document.getElementById(StyleManager.STYLE_ID)) return
+    try {
+      if (document.getElementById(StyleManager.STYLE_ID)) return
 
-    const style = document.createElement('style')
-    style.id = StyleManager.STYLE_ID
-    style.textContent = StyleManager.CSS
-    document.head.appendChild(style)
+      const style = document.createElement('style')
+      style.id = StyleManager.STYLE_ID
+      style.textContent = StyleManager.CSS
+      document.head.appendChild(style)
+      ErrorHandler.logInfo('Content', 'FODMAP styles injected successfully')
+    } catch (error) {
+      ErrorHandler.logError('Content', error, { context: 'Style injection' })
+    }
   }
 
   static applyToCard(
@@ -50,17 +57,26 @@ export class StyleManager {
     status: FodmapStatus,
     shouldHide: boolean,
   ): void {
-    const isHidden = card.style.display === 'none'
-    const currentStatus = card.dataset.fodmapStatus
+    PerformanceMonitor.measure('applyToCard', () => {
+      try {
+        const isHidden = card.style.display === 'none'
+        const currentStatus = card.dataset.fodmapStatus
 
-    if (currentStatus === status && isHidden === shouldHide) return
+        if (currentStatus === status && isHidden === shouldHide) return
 
-    StyleManager.resetCard(card)
-    StyleManager.applyStatus(card, status)
-    StyleManager.applyVisibility(card, shouldHide)
+        StyleManager.resetCard(card)
+        StyleManager.applyStatus(card, status)
+        StyleManager.applyVisibility(card, shouldHide)
 
-    card.dataset.fodmapStatus = status
-    card.dataset.fodmapStyleApplied = 'true'
+        card.dataset.fodmapStatus = status
+        card.dataset.fodmapStyleApplied = 'true'
+      } catch (error) {
+        ErrorHandler.logError('Content', error, {
+          context: 'Style application',
+          metadata: { status, shouldHide },
+        })
+      }
+    })
   }
 
   private static resetCard(card: HTMLElement): void {

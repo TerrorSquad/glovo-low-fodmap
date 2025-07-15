@@ -43,6 +43,6 @@
   }
 
   .fodmap-card-hidden {
-    @apply opacity-30 pointer-events-none transition-opacity duration-200;
+    @apply hidden;
   }
 }

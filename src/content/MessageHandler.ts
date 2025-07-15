@@ -3,6 +3,7 @@ import { ErrorHandler } from '../shared/ErrorHandler'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import { type ChromeMessage, type LogPayload } from '../shared/types'
 import { ProductManager } from './ProductManager'
+import { StorageManager } from './StorageManager'
 
 export interface IFodmapHelper {
   updatePageStyles(): Promise<void>
@@ -48,8 +49,10 @@ export class MessageHandler {
             break
 
           case 're-evaluate':
-            this.fodmapHelper.setHideNonLowFodmap(message.hide || false)
-            this.fodmapHelper.updatePageStyles()
+            // Handle async operation without blocking the message handler
+            this.handleReEvaluate(message).catch((error) => {
+              console.error('Error handling re-evaluate:', error)
+            })
             break
         }
         return false
@@ -145,5 +148,15 @@ export class MessageHandler {
         }
       },
     )
+  }
+
+  private async handleReEvaluate(message: ChromeMessage): Promise<void> {
+    this.fodmapHelper.setHideNonLowFodmap(message.hide || false)
+
+    // Save the setting to storage for persistence
+    await StorageManager.setHideNonLowFodmap(message.hide || false)
+
+    // Force update all cards to ensure visibility changes take effect
+    await this.fodmapHelper.updatePageStyles()
   }
 }

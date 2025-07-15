@@ -1,4 +1,5 @@
 import { Config } from '../shared/Config'
+import { type Product } from '../shared/db'
 import { ErrorHandler } from '../shared/ErrorHandler'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import { type InjectedProductData } from '../shared/types'
@@ -41,6 +42,41 @@ export class CardManager {
         )
       } catch (error) {
         ErrorHandler.logError('Content', error, { context: 'Card tagging' })
+      }
+    })
+  }
+
+  static tagVisibleCardsByName(products: Product[]): void {
+    PerformanceMonitor.measure('tagVisibleCardsByName', () => {
+      try {
+        const untaggedCards = document.querySelectorAll<HTMLElement>(
+          `${CardManager.CARD_SELECTOR}:not([data-external-id])`,
+        )
+        const productMap = new Map(
+          products.map((p) => [p.name.trim().toLowerCase(), p.externalId]),
+        )
+
+        untaggedCards.forEach((card) => {
+          const cardName = card
+            .querySelector(CardManager.CARD_NAME_SELECTOR)
+            ?.textContent?.trim()
+
+          if (!cardName) return
+
+          const externalId = productMap.get(cardName.toLowerCase())
+          if (externalId) {
+            card.dataset.externalId = externalId.toString()
+          }
+        })
+
+        ErrorHandler.logInfo(
+          'Content',
+          `Tagged ${untaggedCards.length} cards with external IDs from database`,
+        )
+      } catch (error) {
+        ErrorHandler.logError('Content', error, {
+          context: 'Card tagging by name',
+        })
       }
     })
   }

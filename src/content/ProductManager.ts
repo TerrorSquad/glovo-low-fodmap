@@ -115,4 +115,23 @@ export class ProductManager {
       )) || []
     return new Map(products.map((p) => [p.externalId, p]))
   }
+
+  static async getProductsByNames(names: string[]): Promise<Product[]> {
+    return (
+      (await ErrorHandler.safeExecute(
+        async () => {
+          // Clean and normalize names for better matching
+          const normalizedNames = names.map((name) => name.trim().toLowerCase())
+
+          // Get all products and filter by normalized names
+          const allProducts = await db.products.toArray()
+          return allProducts.filter((product) =>
+            normalizedNames.includes(product.name.trim().toLowerCase()),
+          )
+        },
+        'Content',
+        [],
+      )) || []
+    )
+  }
 }

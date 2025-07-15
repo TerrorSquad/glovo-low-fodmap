@@ -23,4 +23,26 @@
   .fodmap-hidden {
     @apply opacity-30 pointer-events-none;
   }
+
+  /* Product card styling */
+  .fodmap-low-highlight {
+    @apply shadow-lg shadow-green-500/50 rounded-2xl transition-all duration-200;
+  }
+
+  /* FODMAP status badges */
+  .fodmap-badge {
+    @apply absolute top-1 right-1 w-6 h-6 bg-green-600 rounded-full flex items-center justify-center z-10 border border-white cursor-help shadow-md;
+  }
+
+  .fodmap-badge svg {
+    @apply w-3 h-3 fill-white;
+  }
+
+  .fodmap-badge-high {
+    @apply bg-red-600;
+  }
+
+  .fodmap-card-hidden {
+    @apply opacity-30 pointer-events-none transition-opacity duration-200;
+  }
 }

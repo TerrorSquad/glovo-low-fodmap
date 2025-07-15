@@ -6,7 +6,6 @@ import { DomProductScanner } from './DomProductScanner'
 import { type IFodmapHelper, MessageHandler } from './MessageHandler'
 import { ProductManager } from './ProductManager'
 import { StorageManager } from './StorageManager'
-import { StyleManager } from './StyleManager'
 
 /**
  * Main class that orchestrates the FODMAP helper functionality
@@ -28,7 +27,6 @@ export class FodmapHelper implements IFodmapHelper {
     return (
       (await ErrorBoundary.protect(
         async () => {
-          StyleManager.inject()
           this.setupEventListeners()
           await this.loadSettings()
 

@@ -1,58 +1,11 @@
-import { Config } from '../shared/Config'
 import { type FodmapStatus } from '../shared/db'
 import { ErrorHandler } from '../shared/ErrorHandler'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 
 /**
- * Handles CSS injection and styling for FODMAP indicators
+ * Handles styling for FODMAP indicators using Tailwind CSS classes
  */
 export class StyleManager {
-  private static readonly STYLE_ID = Config.CSS_CLASSES.STYLE_ID
-  private static readonly CSS = `
-    .fodmap-low-highlight {
-      box-shadow: 0 0 7px 2px rgba(76, 175, 80, 0.55);
-      border-radius: 16px;
-      transition: all 0.2s ease-in-out;
-    }
-    .fodmap-badge {
-      position: absolute;
-      top: 5px;
-      right: 5px;
-      width: 22px;
-      height: 22px;
-      background-color: #28a745;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-      border: 1px solid white;
-      cursor: help;
-    }
-    .fodmap-badge svg {
-      width: 12px;
-      height: 12px;
-      fill: white;
-    }
-    .fodmap-badge-high {
-      background-color: #dc3545 !important;
-    }
-  `
-
-  static inject(): void {
-    try {
-      if (document.getElementById(StyleManager.STYLE_ID)) return
-
-      const style = document.createElement('style')
-      style.id = StyleManager.STYLE_ID
-      style.textContent = StyleManager.CSS
-      document.head.appendChild(style)
-      ErrorHandler.logInfo('Content', 'FODMAP styles injected successfully')
-    } catch (error) {
-      ErrorHandler.logError('Content', error, { context: 'Style injection' })
-    }
-  }
-
   static applyToCard(
     card: HTMLElement,
     status: FodmapStatus,

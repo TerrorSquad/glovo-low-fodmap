@@ -1,3 +1,4 @@
+import './styles/content.css'
 import { DomProductScanner } from './content/DomProductScanner'
 import { FodmapHelper } from './content/FodmapHelper'
 import { DiagnosticUtils } from './shared/DiagnosticUtils'

@@ -90,34 +90,59 @@ export class CardManager {
   }
 
   static async updateAllCards(hideNonLowFodmap: boolean): Promise<void> {
-    return await PerformanceMonitor.measureAsync('updateAllCards', async () => {
-      try {
-        const allCards = CardManager.getTaggedCards()
-        if (allCards.length === 0) return
+    return await PerformanceMonitor.measureAsync(
+      'updateAllCards',
+      async () => {
+        try {
+          const allCards = CardManager.getTaggedCards()
+          if (allCards.length === 0) return
 
-        const externalIds = allCards.map((card) => card.dataset.externalId!)
-        const dbMap = await ProductManager.getProductsByExternalIds(externalIds)
+          const externalIds = allCards.map((card) => card.dataset.externalId!)
+          const dbMap =
+            await ProductManager.getProductsByExternalIds(externalIds)
+          let changedCards = 0
 
-        allCards.forEach((card) => {
-          const externalId = card.dataset.externalId
-          if (!externalId) return
+          allCards.forEach((card) => {
+            const externalId = card.dataset.externalId
+            if (!externalId) return
 
-          const product = dbMap.get(externalId)
-          if (product) {
-            const shouldBeHidden = product.status !== 'LOW' && hideNonLowFodmap
-            StyleManager.applyToCard(card, product.status, shouldBeHidden)
+            const product = dbMap.get(externalId)
+            if (product) {
+              const currentStatus = card.dataset.fodmapStatus
+              const shouldBeHidden =
+                product.status !== 'LOW' && hideNonLowFodmap
+              const isCurrentlyHidden =
+                card.classList.contains('fodmap-card-hidden')
+
+              // Only apply styling if there's an actual change needed
+              if (
+                currentStatus !== product.status ||
+                isCurrentlyHidden !== shouldBeHidden
+              ) {
+                StyleManager.applyToCard(card, product.status, shouldBeHidden)
+                changedCards++
+              }
+            }
+          })
+
+          // Only log info message when there were changes
+          if (changedCards > 0) {
+            ErrorHandler.logInfo(
+              'Content',
+              `Updated styles for ${changedCards}/${allCards.length} cards`,
+            )
           }
-        })
-
-        ErrorHandler.logInfo(
-          'Content',
-          `Updated styles for ${allCards.length} cards`,
-        )
-      } catch (error) {
-        ErrorHandler.logError('Content', error, {
-          context: 'Card style update',
-        })
-      }
-    })
+        } catch (error) {
+          ErrorHandler.logError('Content', error, {
+            context: 'Card style update',
+          })
+        }
+      },
+      {
+        threshold: 5, // Only log if update takes more than 5ms
+        debugOnly: false, // Log updateAllCards even in non-debug mode but only when slow
+        metadata: { hideNonLowFodmap },
+      },
+    )
   }
 }

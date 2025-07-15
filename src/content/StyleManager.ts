@@ -45,38 +45,45 @@ export class StyleManager {
     status: FodmapStatus,
     shouldHide: boolean,
   ): void {
-    PerformanceMonitor.measure('applyToCard', () => {
-      try {
-        const currentStatus = card.dataset.fodmapStatus
-        const isCurrentlyHidden = card.classList.contains(
-          StyleManager.CSS_CLASSES.CARD_HIDDEN,
-        )
-        const hasBadge =
-          card.querySelector(`.${StyleManager.CSS_CLASSES.BADGE}`) !== null
-        const shouldShowBadge = StyleManager.STATUS_CONFIG[status] !== null
+    PerformanceMonitor.measure(
+      'applyToCard',
+      () => {
+        try {
+          const currentStatus = card.dataset.fodmapStatus
+          const isCurrentlyHidden = card.classList.contains(
+            StyleManager.CSS_CLASSES.CARD_HIDDEN,
+          )
+          const hasBadge =
+            card.querySelector(`.${StyleManager.CSS_CLASSES.BADGE}`) !== null
+          const shouldShowBadge = StyleManager.STATUS_CONFIG[status] !== null
 
-        // Skip if no changes needed
-        if (
-          currentStatus === status &&
-          isCurrentlyHidden === shouldHide &&
-          hasBadge === shouldShowBadge
-        ) {
-          return
+          // Skip if no changes needed
+          if (
+            currentStatus === status &&
+            isCurrentlyHidden === shouldHide &&
+            hasBadge === shouldShowBadge
+          ) {
+            return
+          }
+
+          StyleManager.resetCard(card)
+          StyleManager.applyStatus(card, status)
+          StyleManager.applyVisibility(card, shouldHide)
+
+          card.dataset.fodmapStatus = status
+          card.dataset.fodmapStyleApplied = 'true'
+        } catch (error) {
+          ErrorHandler.logError('Content', error, {
+            context: 'Style application',
+            metadata: { status, shouldHide },
+          })
         }
-
-        StyleManager.resetCard(card)
-        StyleManager.applyStatus(card, status)
-        StyleManager.applyVisibility(card, shouldHide)
-
-        card.dataset.fodmapStatus = status
-        card.dataset.fodmapStyleApplied = 'true'
-      } catch (error) {
-        ErrorHandler.logError('Content', error, {
-          context: 'Style application',
-          metadata: { status, shouldHide },
-        })
-      }
-    })
+      },
+      {
+        debugOnly: true, // Only log in debug mode to reduce spam
+        threshold: 1, // Only log if it takes more than 1ms
+      },
+    )
   }
 
   private static resetCard(card: HTMLElement): void {

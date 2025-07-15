@@ -48,7 +48,7 @@ export class CardManager {
   static getTaggedCards(): HTMLElement[] {
     return Array.from(
       document.querySelectorAll<HTMLElement>(
-        `${CardManager.CARD_SELECTOR}[data-external-id]`,
+        `${CardManager.CARD_SELECTOR}[data-external-id]:not([data-fodmap-style-applied])`,
       ),
     )
   }

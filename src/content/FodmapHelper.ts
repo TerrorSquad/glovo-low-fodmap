@@ -1,4 +1,5 @@
 import { DiagnosticUtils } from '../shared/DiagnosticUtils'
+import { ErrorBoundary } from '../shared/ErrorBoundary'
 import { type InjectedProductData } from '../shared/types'
 import { CardManager } from './CardManager'
 import { type IFodmapHelper, MessageHandler } from './MessageHandler'
@@ -16,13 +17,37 @@ export class FodmapHelper implements IFodmapHelper {
 
   constructor() {
     this.messageHandler = new MessageHandler(this)
+
+    // Setup error boundary recovery strategies
+    ErrorBoundary.setupDefaultRecoveryStrategies()
   }
 
   async init(): Promise<void> {
-    StyleManager.inject()
-    this.setupEventListeners()
-    await this.loadSettings()
-    this.startPeriodicUpdate()
+    return (
+      (await ErrorBoundary.protect(
+        async () => {
+          StyleManager.inject()
+          this.setupEventListeners()
+          await this.loadSettings()
+          this.startPeriodicUpdate()
+        },
+        'content-init',
+        {
+          maxRetries: 3,
+          retryDelayMs: 1000,
+          onError: (error) => {
+            console.warn(
+              `FODMAP Helper initialization failed: ${error.message}`,
+            )
+          },
+          onRecovery: () => {
+            console.log(
+              'FODMAP Helper successfully recovered from initialization error',
+            )
+          },
+        },
+      )) ?? Promise.resolve()
+    )
   }
 
   setHideNonLowFodmap(hide: boolean): void {
@@ -30,7 +55,9 @@ export class FodmapHelper implements IFodmapHelper {
   }
 
   async updatePageStyles(): Promise<void> {
-    await CardManager.updateAllCards(this.hideNonLowFodmap)
+    ;(await ErrorBoundary.protect(async () => {
+      await CardManager.updateAllCards(this.hideNonLowFodmap)
+    }, 'update-styles')) ?? Promise.resolve()
   }
 
   private setupEventListeners(): void {

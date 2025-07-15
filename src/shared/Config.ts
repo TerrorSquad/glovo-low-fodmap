@@ -24,6 +24,16 @@ export class Config {
   static readonly UPDATE_INTERVAL =
     Number(import.meta.env.VITE_UPDATE_INTERVAL) || 1000
 
+  // Sync Configuration
+  static readonly SYNC_INTERVAL =
+    Number(import.meta.env.VITE_SYNC_INTERVAL) || 300000 // 5 minutes default
+  static readonly SYNC_RETRY_ATTEMPTS =
+    Number(import.meta.env.VITE_SYNC_RETRY_ATTEMPTS) || 3
+  static readonly SYNC_RETRY_DELAY =
+    Number(import.meta.env.VITE_SYNC_RETRY_DELAY) || 2000 // 2 seconds default
+  static readonly SYNC_BATCH_SIZE =
+    Number(import.meta.env.VITE_SYNC_BATCH_SIZE) || 50
+
   // Extension Configuration
   static readonly EXTENSION_NAME = 'Glovo FODMAP Helper'
   static readonly STORAGE_KEYS = {
@@ -60,8 +70,26 @@ export class Config {
       issues.push('Update interval should be at least 100ms')
     }
 
+    if (Config.SYNC_INTERVAL < 60000) {
+      issues.push('Sync interval should be at least 60 seconds (60000ms)')
+    }
+
+    if (Config.SYNC_RETRY_ATTEMPTS < 1 || Config.SYNC_RETRY_ATTEMPTS > 10) {
+      issues.push('Sync retry attempts should be between 1 and 10')
+    }
+
+    if (Config.SYNC_RETRY_DELAY < 1000) {
+      issues.push('Sync retry delay should be at least 1 second (1000ms)')
+    }
+
+    if (Config.SYNC_BATCH_SIZE < 1 || Config.SYNC_BATCH_SIZE > 100) {
+      issues.push('Sync batch size should be between 1 and 100')
+    }
+
     if (issues.length > 0) {
-      ErrorHandler.logWarning('Config', 'Configuration issues found:', issues)
+      ErrorHandler.logWarning('Config', 'Configuration issues found:', {
+        issues,
+      })
       return false
     }
 
@@ -81,6 +109,10 @@ export class Config {
       syncEnabled: Config.ENABLE_SYNC,
       periodicUpdateEnabled: Config.ENABLE_PERIODIC_UPDATE,
       updateInterval: Config.UPDATE_INTERVAL,
+      syncInterval: Config.SYNC_INTERVAL,
+      syncRetryAttempts: Config.SYNC_RETRY_ATTEMPTS,
+      syncRetryDelay: Config.SYNC_RETRY_DELAY,
+      syncBatchSize: Config.SYNC_BATCH_SIZE,
     }
   }
 }

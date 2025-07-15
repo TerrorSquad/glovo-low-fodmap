@@ -2,10 +2,19 @@ import { ErrorHandler } from '../shared/ErrorHandler'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import { SyncOrchestrator } from './SyncOrchestrator'
 
-export type BackgroundMessageAction = 'syncWithApi' | 'newProductsFound'
+export type BackgroundMessageAction =
+  | 'syncWithApi'
+  | 'newProductsFound'
+  | 'getSyncStatus'
 
 export interface BackgroundMessage {
   action: BackgroundMessageAction
+}
+
+export interface BackgroundMessageResponse {
+  success: boolean
+  data?: any
+  error?: string
 }
 
 /**
@@ -18,33 +27,43 @@ export class BackgroundMessageHandler {
     this.syncOrchestrator = syncOrchestrator
   }
 
-  handleMessage = (message: BackgroundMessage): boolean => {
-    return PerformanceMonitor.measure('handleBackgroundMessage', () => {
-      try {
-        switch (message.action) {
-          case 'syncWithApi':
-            this.handleManualSync()
-            return true
+  handleMessage = (message: BackgroundMessage): BackgroundMessageResponse => {
+    return PerformanceMonitor.measure(
+      'handleBackgroundMessage',
+      () => {
+        try {
+          switch (message.action) {
+            case 'syncWithApi':
+              this.handleManualSync()
+              return { success: true }
 
-          case 'newProductsFound':
-            this.handleNewProducts()
-            return true
+            case 'newProductsFound':
+              this.handleNewProducts()
+              return { success: true }
 
-          default:
-            ErrorHandler.logWarning(
-              'Background',
-              `Unknown message action: ${message.action}`,
-            )
-            return false
+            case 'getSyncStatus':
+              return {
+                success: true,
+                data: this.syncOrchestrator.getSyncStatus(),
+              }
+
+            default: {
+              const errorMsg = `Unknown message action: ${message.action}`
+              ErrorHandler.logWarning('Background', errorMsg)
+              return { success: false, error: errorMsg }
+            }
+          }
+        } catch (error) {
+          const errorMsg = `Background message handling failed: ${(error as Error).message}`
+          ErrorHandler.logError('Background', error, {
+            context: 'Background message handling',
+            metadata: { action: message.action },
+          })
+          return { success: false, error: errorMsg }
         }
-      } catch (error) {
-        ErrorHandler.logError('Background', error, {
-          context: 'Background message handling',
-          metadata: { action: message.action },
-        })
-        return false
-      }
-    })
+      },
+      { debugOnly: true },
+    )
   }
 
   private handleManualSync(): void {

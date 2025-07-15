@@ -7,6 +7,7 @@ import { PerformanceMonitor } from '../shared/PerformanceMonitor'
  */
 export class PopupController {
   private toggleSwitch: HTMLInputElement
+  private darkModeToggle: HTMLInputElement
   private syncButton: HTMLButtonElement
   private syncUnknownButton: HTMLButtonElement
   private statusElement: HTMLElement
@@ -25,6 +26,9 @@ export class PopupController {
     // Core elements
     this.toggleSwitch = document.getElementById(
       'hideNonLowFodmap',
+    ) as HTMLInputElement
+    this.darkModeToggle = document.getElementById(
+      'darkModeToggle',
     ) as HTMLInputElement
     this.syncButton = document.getElementById('syncButton') as HTMLButtonElement
     this.syncUnknownButton = document.getElementById(
@@ -58,7 +62,12 @@ export class PopupController {
       'clearData',
     ) as HTMLButtonElement
 
-    if (!this.toggleSwitch || !this.syncButton || !this.syncUnknownButton) {
+    if (
+      !this.toggleSwitch ||
+      !this.darkModeToggle ||
+      !this.syncButton ||
+      !this.syncUnknownButton
+    ) {
       throw new Error('Required DOM elements not found')
     }
   }
@@ -81,14 +90,22 @@ export class PopupController {
   private async loadSettings(): Promise<void> {
     return await ErrorHandler.safeExecute(async () => {
       return new Promise<void>((resolve) => {
-        chrome.storage.sync.get({ hideNonLowFodmap: false }, (data) => {
-          this.toggleSwitch.checked = !!data.hideNonLowFodmap
-          ErrorHandler.logInfo(
-            'Popup',
-            `Loaded setting: hideNonLowFodmap = ${data.hideNonLowFodmap}`,
-          )
-          resolve()
-        })
+        chrome.storage.sync.get(
+          { hideNonLowFodmap: false, darkMode: false },
+          (data) => {
+            this.toggleSwitch.checked = !!data.hideNonLowFodmap
+            this.darkModeToggle.checked = !!data.darkMode
+
+            // Apply dark mode class to document body
+            this.applyDarkMode(!!data.darkMode)
+
+            ErrorHandler.logInfo(
+              'Popup',
+              `Loaded settings: hideNonLowFodmap = ${data.hideNonLowFodmap}, darkMode = ${data.darkMode}`,
+            )
+            resolve()
+          },
+        )
       })
     }, 'Popup')
   }
@@ -142,6 +159,7 @@ export class PopupController {
 
   private setupEventListeners(): void {
     this.toggleSwitch.addEventListener('change', this.handleToggleChange)
+    this.darkModeToggle.addEventListener('change', this.handleDarkModeToggle)
     this.syncButton.addEventListener('click', this.handleSyncClick)
     this.syncUnknownButton.addEventListener(
       'click',
@@ -178,6 +196,37 @@ export class PopupController {
       ErrorHandler.logError('Popup', error, {
         context: 'Toggle change handling',
       })
+    }
+  }
+
+  private handleDarkModeToggle = (): void => {
+    try {
+      const isDarkMode = this.darkModeToggle.checked
+
+      // Save setting to storage
+      chrome.storage.sync.set({ darkMode: isDarkMode })
+      ErrorHandler.logInfo(
+        'Popup',
+        `Dark mode changed: darkMode = ${isDarkMode}`,
+      )
+
+      // Apply dark mode immediately
+      this.applyDarkMode(isDarkMode)
+    } catch (error) {
+      ErrorHandler.logError('Popup', error, {
+        context: 'Dark mode toggle handling',
+      })
+    }
+  }
+
+  private applyDarkMode(isDarkMode: boolean): void {
+    const popupContainer = document.querySelector('.popup-container')
+    if (popupContainer) {
+      if (isDarkMode) {
+        popupContainer.classList.add('dark')
+      } else {
+        popupContainer.classList.remove('dark')
+      }
     }
   }
 
@@ -332,6 +381,13 @@ export class PopupController {
       this.handleSyncUnknownClick()
     }
 
+    // Ctrl/Cmd + D: Toggle dark mode
+    if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
+      event.preventDefault()
+      this.darkModeToggle.checked = !this.darkModeToggle.checked
+      this.handleDarkModeToggle()
+    }
+
     // Space: Toggle switch
     if (event.key === ' ' && event.target === document.body) {
       event.preventDefault()
@@ -344,8 +400,8 @@ export class PopupController {
       this.handleHealthCheck()
     }
 
-    // D: Diagnostics
-    if (event.key === 'd' && !event.ctrlKey && !event.metaKey) {
+    // T: Diagnostics (changed from D to avoid conflict with dark mode)
+    if (event.key === 't' && !event.ctrlKey && !event.metaKey) {
       this.handleDiagnostics()
     }
   }

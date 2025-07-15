@@ -2,10 +2,44 @@ import { type FodmapStatus } from '../shared/db'
 import { ErrorHandler } from '../shared/ErrorHandler'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 
+type BadgeConfig = {
+  title: string
+  icon: string
+  className: string
+  ariaLabel: string
+}
+
 /**
  * Handles styling for FODMAP indicators using Tailwind CSS classes
  */
 export class StyleManager {
+  private static readonly CSS_CLASSES = {
+    LOW_HIGHLIGHT: 'fodmap-low-highlight',
+    CARD_HIDDEN: 'fodmap-card-hidden',
+    BADGE: 'fodmap-badge',
+    BADGE_HIGH: 'fodmap-badge-high',
+  } as const
+
+  private static readonly STATUS_CONFIG: Record<
+    FodmapStatus,
+    BadgeConfig | null
+  > = {
+    LOW: {
+      title: 'Low-FODMAP',
+      icon: StyleManager.getCheckIcon(),
+      className: StyleManager.CSS_CLASSES.BADGE,
+      ariaLabel: 'This product is low in FODMAPs and suitable for the diet',
+    },
+    HIGH: {
+      title: 'High-FODMAP',
+      icon: StyleManager.getCrossIcon(),
+      className: `${StyleManager.CSS_CLASSES.BADGE} ${StyleManager.CSS_CLASSES.BADGE_HIGH}`,
+      ariaLabel: 'This product is high in FODMAPs and should be avoided',
+    },
+    UNKNOWN: null,
+    PENDING: null,
+  }
+
   static applyToCard(
     card: HTMLElement,
     status: FodmapStatus,
@@ -13,10 +47,13 @@ export class StyleManager {
   ): void {
     PerformanceMonitor.measure('applyToCard', () => {
       try {
-        const isHidden = card.style.display === 'none'
         const currentStatus = card.dataset.fodmapStatus
+        const isCurrentlyHidden = card.classList.contains('fodmap-card-hidden')
 
-        if (currentStatus === status && isHidden === shouldHide) return
+        // Skip if no changes needed
+        if (currentStatus === status && isCurrentlyHidden === shouldHide) {
+          return
+        }
 
         StyleManager.resetCard(card)
         StyleManager.applyStatus(card, status)
@@ -34,32 +71,39 @@ export class StyleManager {
   }
 
   private static resetCard(card: HTMLElement): void {
-    card.classList.remove('fodmap-low-highlight')
-    card.querySelector('.fodmap-badge')?.remove()
+    // Remove all FODMAP-related classes
+    card.classList.remove(
+      StyleManager.CSS_CLASSES.LOW_HIGHLIGHT,
+      StyleManager.CSS_CLASSES.CARD_HIDDEN,
+    )
+    card.querySelector(`.${StyleManager.CSS_CLASSES.BADGE}`)?.remove()
     card.style.position = 'relative'
   }
 
   private static applyStatus(card: HTMLElement, status: FodmapStatus): void {
-    if (status === 'LOW') {
-      card.classList.add('fodmap-low-highlight')
+    const config = StyleManager.STATUS_CONFIG[status]
+
+    if (config) {
+      if (status === 'LOW') {
+        card.classList.add(StyleManager.CSS_CLASSES.LOW_HIGHLIGHT)
+      }
+
       StyleManager.addBadge(
         card,
-        'Low-FODMAP',
-        StyleManager.getCheckIcon(),
-        'fodmap-badge',
-      )
-    } else if (status === 'HIGH') {
-      StyleManager.addBadge(
-        card,
-        'High-FODMAP',
-        StyleManager.getCrossIcon(),
-        'fodmap-badge fodmap-badge-high',
+        config.title,
+        config.icon,
+        config.className,
+        config.ariaLabel,
       )
     }
   }
 
   private static applyVisibility(card: HTMLElement, shouldHide: boolean): void {
-    card.style.display = shouldHide ? 'none' : 'block'
+    if (shouldHide) {
+      card.classList.add(StyleManager.CSS_CLASSES.CARD_HIDDEN)
+    } else {
+      card.classList.remove(StyleManager.CSS_CLASSES.CARD_HIDDEN)
+    }
   }
 
   private static addBadge(
@@ -67,11 +111,14 @@ export class StyleManager {
     title: string,
     icon: string,
     className: string,
+    ariaLabel: string,
   ): void {
     const badge = document.createElement('div')
     badge.className = className
     badge.title = title
     badge.innerHTML = icon
+    badge.setAttribute('aria-label', ariaLabel)
+    badge.setAttribute('role', 'img')
     card.appendChild(badge)
   }
 

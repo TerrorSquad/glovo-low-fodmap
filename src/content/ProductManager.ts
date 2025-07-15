@@ -144,4 +144,14 @@ export class ProductManager {
       )) || []
     )
   }
+
+  static async getAllProducts(): Promise<Product[]> {
+    return (
+      (await ErrorHandler.safeExecute(
+        async () => db.products.toArray(),
+        'Content',
+        [],
+      )) || []
+    )
+  }
 }

@@ -40,6 +40,10 @@ export class MessageHandler {
             this.handleGetUnknownProducts(sendResponse)
             return true
 
+          case 'getProductStatistics':
+            this.handleGetProductStatistics(sendResponse)
+            return true
+
           case 'updateStatuses':
             this.handleUpdateStatuses(message.data, sendResponse)
             return true
@@ -145,6 +149,44 @@ export class MessageHandler {
             context: 'Updating product statuses',
           })
           sendResponse({ success: false, error: (error as Error).message })
+        }
+      },
+    )
+  }
+
+  private async handleGetProductStatistics(
+    sendResponse: (response?: any) => void,
+  ): Promise<void> {
+    return await PerformanceMonitor.measureAsync(
+      'handleGetProductStatistics',
+      async () => {
+        try {
+          const allProducts = await ProductManager.getAllProducts()
+          const lowFodmapProducts = allProducts.filter(
+            (p: Product) => p.status === 'LOW',
+          )
+
+          const statistics = {
+            total: allProducts.length,
+            lowFodmap: lowFodmapProducts.length,
+            high: allProducts.filter((p: Product) => p.status === 'HIGH')
+              .length,
+            unknown: allProducts.filter((p: Product) => p.status === 'UNKNOWN')
+              .length,
+            pending: allProducts.filter((p: Product) => p.status === 'PENDING')
+              .length,
+          }
+
+          sendResponse(statistics)
+          ErrorHandler.logInfo(
+            'Content',
+            `Sent statistics to popup: ${statistics.total} total, ${statistics.lowFodmap} low FODMAP`,
+          )
+        } catch (error) {
+          ErrorHandler.logError('Content', error, {
+            context: 'Getting product statistics',
+          })
+          sendResponse({ total: 0, lowFodmap: 0 })
         }
       },
     )

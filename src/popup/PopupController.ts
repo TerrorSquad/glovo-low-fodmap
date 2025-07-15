@@ -27,7 +27,9 @@ export class PopupController {
       'hideNonLowFodmap',
     ) as HTMLInputElement
     this.syncButton = document.getElementById('syncButton') as HTMLButtonElement
-    this.syncUnknownButton = document.getElementById('syncUnknownButton') as HTMLButtonElement
+    this.syncUnknownButton = document.getElementById(
+      'syncUnknownButton',
+    ) as HTMLButtonElement
 
     // Status elements
     this.statusElement = document.getElementById('status') as HTMLElement
@@ -93,25 +95,44 @@ export class PopupController {
 
   private async loadStatistics(): Promise<void> {
     try {
-      // Get product counts from storage
-      return new Promise<void>((resolve) => {
-        chrome.storage.local.get(['products'], (data) => {
-          const products = data.products || []
-          const lowFodmapProducts = products.filter(
-            (p: any) => p.fodmapStatus === 'low',
-          )
-
-          this.totalProductsElement.textContent = products.length.toString()
-          this.lowFodmapCountElement.textContent =
-            lowFodmapProducts.length.toString()
-
-          ErrorHandler.logInfo(
-            'Popup',
-            `Loaded statistics: ${products.length} total, ${lowFodmapProducts.length} low FODMAP`,
-          )
-          resolve()
-        })
+      // Send message to content script to get product counts from IndexedDB
+      const tabs = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
       })
+      if (tabs[0]?.id) {
+        chrome.tabs.sendMessage(
+          tabs[0].id,
+          { action: 'getProductStatistics' },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              // Content script might not be loaded
+              this.totalProductsElement.textContent = '0'
+              this.lowFodmapCountElement.textContent = '0'
+              return
+            }
+
+            if (response && typeof response === 'object') {
+              this.totalProductsElement.textContent =
+                response.total?.toString() || '0'
+              this.lowFodmapCountElement.textContent =
+                response.lowFodmap?.toString() || '0'
+
+              ErrorHandler.logInfo(
+                'Popup',
+                `Loaded statistics: ${response.total} total, ${response.lowFodmap} low FODMAP`,
+              )
+            } else {
+              this.totalProductsElement.textContent = '0'
+              this.lowFodmapCountElement.textContent = '0'
+            }
+          },
+        )
+      } else {
+        // No active tab
+        this.totalProductsElement.textContent = '0'
+        this.lowFodmapCountElement.textContent = '0'
+      }
     } catch (error) {
       ErrorHandler.logError('Popup', error, { context: 'Loading statistics' })
       this.totalProductsElement.textContent = '?'
@@ -122,7 +143,10 @@ export class PopupController {
   private setupEventListeners(): void {
     this.toggleSwitch.addEventListener('change', this.handleToggleChange)
     this.syncButton.addEventListener('click', this.handleSyncClick)
-    this.syncUnknownButton.addEventListener('click', this.handleSyncUnknownClick)
+    this.syncUnknownButton.addEventListener(
+      'click',
+      this.handleSyncUnknownClick,
+    )
 
     // Debug event listeners
     this.healthCheckButton.addEventListener('click', this.handleHealthCheck)
@@ -203,7 +227,9 @@ export class PopupController {
         }, 3000)
       }, 2000)
     } catch (error) {
-      ErrorHandler.logError('Popup', error, { context: 'Sync unknown products button click' })
+      ErrorHandler.logError('Popup', error, {
+        context: 'Sync unknown products button click',
+      })
       this.updateStatus('Unknown products sync failed', 'error')
       this.syncUnknownButton.disabled = false
     }

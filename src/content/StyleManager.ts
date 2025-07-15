@@ -1,4 +1,4 @@
-import type { FodmapStatus } from './db'
+import { type FodmapStatus } from '../shared/db'
 
 /**
  * Handles CSS injection and styling for FODMAP indicators

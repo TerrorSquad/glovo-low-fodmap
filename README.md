@@ -14,17 +14,38 @@ Chrome ekstenzija za označavanje FODMAP statusa proizvoda na Glovo aplikaciji.
 
 ```
 src/
-├── content.ts          # Glavna content skripta - inicijalizuje aplikaciju
-├── FodmapHelper.ts     # Glavna klasa koja orchestrira funkcionalnost
-├── StyleManager.ts     # Upravljanje CSS stilovima i vizuelnim indikatorima
-├── ProductManager.ts   # Operacije sa bazom podataka (Dexie)
-├── CardManager.ts      # DOM operacije na karticama proizvoda
-├── MessageHandler.ts   # Chrome extension messaging
-├── StorageManager.ts   # Chrome storage operacije
-├── types.ts           # TypeScript tipovi i interfejsi
-├── background.ts      # Background skripta
-├── popup.ts          # Popup skripta
-└── db.ts             # Dexie baza definicija
+├── content.ts              # Entry point - inicijalizuje FodmapHelper
+├── injector.ts             # Entry point - inicijalizuje ApiInterceptor
+├── main.ts                 # Entry point - inicijalizuje PopupController
+├── background.ts           # Entry point - inicijalizuje background services
+│
+├── types.ts                # Zajedničke TypeScript tipove i interfejse
+├── types/
+│   └── glovo.ts           # Glovo API tipovi i interfejsi
+│
+├── db.ts                   # Dexie baza definicija
+│
+# Content Script Components
+├── FodmapHelper.ts         # Glavna klasa koja orchestrira funkcionalnost
+├── StyleManager.ts         # CSS injection i vizuelni indikatori
+├── ProductManager.ts       # Operacije sa bazom podataka (Dexie)
+├── CardManager.ts          # DOM operacije na karticama proizvoda
+├── MessageHandler.ts       # Chrome extension messaging za content
+├── StorageManager.ts       # Chrome storage operacije
+│
+# Background Script Components
+├── SyncOrchestrator.ts     # Orchestrira background sync proces
+├── BackgroundMessageHandler.ts  # Chrome messaging za background
+├── ContentMessenger.ts     # Komunikacija sa content skriptama
+├── FodmapApiClient.ts      # API klijent za FODMAP klasifikaciju
+├── BackgroundLogger.ts     # Logger koji prosleđuje poruke content skripti
+│
+# Injector Components
+├── ApiInterceptor.ts       # Presretanje fetch/XHR zahteva
+├── ProductExtractor.ts     # Ekstraktovanje proizvoda iz API odgovora
+│
+# Popup Components
+└── PopupController.ts      # Popup UI kontroler
 ```
 
 ## Instalacija i razvoj
@@ -81,42 +102,78 @@ VITE_API_ENDPOINT=https://your-api.com/classify
 
 ## Arhitektura
 
-### Modularni pristup
+### Kompletno modularni pristup
 
-Aplikacija je refaktorisana u modularne klase za bolju održivost:
+Aplikacija je potpuno refaktorisana u modularne komponente za maksimalnu održivost:
 
-- **FodmapHelper**: Glavna klasa koja koordiniše sve komponente
+#### Content Script Komponente
+- **FodmapHelper**: Glavna klasa koja koordiniše sve content script komponente
 - **StyleManager**: Statičke metode za CSS injection i styling
-- **ProductManager**: Statičke metode za operacije sa bazom
-- **CardManager**: DOM manipulacija kartica proizvoda
+- **ProductManager**: Statičke metode za operacije sa Dexie bazom
+- **CardManager**: DOM manipulacija kartica proizvoda  
 - **MessageHandler**: Centralizovano rukovanje Chrome porukama
-- **StorageManager**: Chrome storage wrapper
+- **StorageManager**: Chrome storage wrapper metode
 
-### Tipovi
+#### Background Script Komponente  
+- **SyncOrchestrator**: Koordiniše celokupan sync proces
+- **BackgroundMessageHandler**: Rukuje Chrome runtime porukama
+- **ContentMessenger**: Komunikacija sa content skriptama
+- **FodmapApiClient**: HTTP klijent za FODMAP API
+- **BackgroundLogger**: Logger koji prosleđuje poruke content skripti
 
-Svi tipovi su izdvojeni u `types.ts` za lakše održavanje i type safety.
+#### Injector Komponente
+- **ApiInterceptor**: Presretanje fetch/XHR zahteva na Glovo stranici
+- **ProductExtractor**: Ekstraktovanje proizvoda iz API odgovora
 
-### Event Flow
+#### Popup Komponente
+- **PopupController**: Kompletan UI kontroler za popup
 
-1. Injected script hvata proizvode sa stranice
-2. Content script prima podatke preko `window.postMessage`
-3. ProductManager čuva nove proizvode u bazu
-4. Background script poziva API za pending proizvode
-5. API vraća FODMAP statuse
-6. ProductManager ažurira statuse u bazi
-7. CardManager aplicira vizuelne stilove
+### Tipovi i interfejsi
+
+- **types.ts**: Zajedničke tipove kroz celu aplikaciju
+- **types/glovo.ts**: Specifične Glovo API tipove i interfejse
+
+### Event Flow sa modularnim komponentama
+
+1. **ApiInterceptor** presreće Glovo API pozive
+2. **ProductExtractor** ekstraktuje proizvode iz odgovora  
+3. **FodmapHelper** prima podatke preko `window.postMessage`
+4. **ProductManager** čuva nove proizvode u Dexie bazu
+5. **BackgroundMessageHandler** prima notifikaciju o novim proizvodima
+6. **SyncOrchestrator** koordiniše API poziv preko **FodmapApiClient**-a
+7. **ContentMessenger** šalje rezultate nazad content skripti
+8. **ProductManager** ažurira statuse u bazi
+9. **CardManager** aplicira vizuelne stilove preko **StyleManager**-a
 
 ## Development
 
 ### Dodavanje novih funkcionalnosti
 
+#### Content Script funkcionalnosti:
 1. Dodajte tipove u `types.ts` ako je potrebno
-2. Implementirajte logiku u odgovarajućem manager-u
-3. Ažurirajte `FodmapHelper` da koristi novu funkcionalnost
+2. Implementirajte logiku u odgovarajućem manager-u:
+   - **UI/Styling** → `StyleManager.ts` ili `CardManager.ts`
+   - **Baza podataka** → `ProductManager.ts`
+   - **Chrome poruke** → `MessageHandler.ts`
+   - **Storage** → `StorageManager.ts`
+3. Ažurirajte `FodmapHelper.ts` da koristi novu funkcionalnost
+
+#### Background Script funkcionalnosti:
+1. **API komunikacija** → `FodmapApiClient.ts`
+2. **Sync logika** → `SyncOrchestrator.ts`  
+3. **Chrome poruke** → `BackgroundMessageHandler.ts`
+4. **Content komunikacija** → `ContentMessenger.ts`
+
+#### Injector funkcionalnosti:
+1. **API presretanje** → `ApiInterceptor.ts`
+2. **Ekstraktovanje podataka** → `ProductExtractor.ts`
+
+#### Popup funkcionalnosti:
+1. **UI kontrola** → `PopupController.ts`
 
 ### Debugging
 
-Source maps su omogućeni u development build-u za lakše debugovanje.
+Source maps su omogućeni u development build-u za lakše debugovanje svih komponenti.
 
 ### Testing
 
@@ -124,6 +181,19 @@ Source maps su omogućeni u development build-u za lakše debugovanje.
 # Pokretanje linter-a
 pnpm run lint
 
-# Type checking
+# Type checking  
 pnpm run type-check
+
+# Build test
+pnpm run build
 ```
+
+### Prednosti nove arhitekture
+
+- ✅ **Single Responsibility Principle**: Svaka klasa ima jednu odgovornost
+- ✅ **Separation of Concerns**: UI, logika, storage i komunikacija su razdvojeni
+- ✅ **Testability**: Svaka komponenta može biti nezavisno testirana
+- ✅ **Maintainability**: Lakše dodavanje novih funkcionalnosti
+- ✅ **Type Safety**: Kompletna TypeScript podrška
+- ✅ **Code Reusability**: Zajedničke komponente mogu biti ponovo korišćene
+- ✅ **Error Isolation**: Greške u jednoj komponenti ne utiču na druge

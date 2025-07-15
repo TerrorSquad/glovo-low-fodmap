@@ -1,6 +1,6 @@
-import type { Product } from './db'
+import { type Product } from '../shared/db'
+import { type ChromeMessage, type LogPayload } from '../shared/types'
 import { ProductManager } from './ProductManager'
-import type { ChromeMessage, LogPayload } from './types'
 
 export interface IFodmapHelper {
   updatePageStyles(): Promise<void>

@@ -1,4 +1,4 @@
-import type { FodmapStatus } from './db'
+import { type FodmapStatus } from './db'
 
 export interface InjectedProductData {
   externalId: string

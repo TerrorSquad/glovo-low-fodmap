@@ -1,5 +1,5 @@
-import { db, type Product } from './db'
-import type { InjectedProductData } from './types'
+import { db, type Product } from '../shared/db'
+import type { InjectedProductData } from '../shared/types'
 
 /**
  * Manages product data operations

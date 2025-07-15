@@ -1,6 +1,6 @@
+import { type InjectedProductData } from '../shared/types'
 import { ProductManager } from './ProductManager'
 import { StyleManager } from './StyleManager'
-import type { InjectedProductData } from './types'
 
 /**
  * Handles DOM operations for product cards

@@ -1,9 +1,9 @@
+import { type InjectedProductData } from '../shared/types'
 import { CardManager } from './CardManager'
 import { type IFodmapHelper, MessageHandler } from './MessageHandler'
 import { ProductManager } from './ProductManager'
 import { StorageManager } from './StorageManager'
 import { StyleManager } from './StyleManager'
-import type { InjectedProductData } from './types'
 
 /**
  * Main class that orchestrates the FODMAP helper functionality

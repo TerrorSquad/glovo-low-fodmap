@@ -1,4 +1,4 @@
-import { FodmapHelper } from './FodmapHelper'
+import { FodmapHelper } from './content/FodmapHelper'
 
 // Initialize the application
 const fodmapHelper = new FodmapHelper()

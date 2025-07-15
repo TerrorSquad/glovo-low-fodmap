@@ -1,4 +1,5 @@
 import { Config } from './Config'
+import { ExtensionTester } from './ExtensionTester'
 import { FeatureFlags } from './FeatureFlags'
 import { HealthMonitor, type SystemHealth } from './HealthMonitor'
 import { Logger } from './Logger'
@@ -300,5 +301,92 @@ export class DiagnosticUtils {
         })
       }
     })
+  }
+
+  /**
+   * Runs built-in extension tests
+   */
+  static async runTests(): Promise<void> {
+    Logger.info('Diagnostics', 'Running extension tests...')
+
+    try {
+      const suites = await ExtensionTester.runAllTests()
+      const totalTests = suites.reduce(
+        (sum, suite) => sum + suite.tests.length,
+        0,
+      )
+      const passedTests = suites.reduce(
+        (sum, suite) => sum + suite.tests.filter((t) => t.passed).length,
+        0,
+      )
+
+      Logger.group('🧪 Test Results', () => {
+        Logger.info(
+          'Diagnostics',
+          `Overall: ${passedTests}/${totalTests} tests passed`,
+        )
+
+        for (const suite of suites) {
+          const status = suite.passed ? '✅' : '❌'
+          const passedCount = suite.tests.filter((t) => t.passed).length
+          Logger.info(
+            'Diagnostics',
+            `${status} ${suite.name}: ${passedCount}/${suite.tests.length} passed`,
+          )
+
+          // Show failed tests
+          const failedTests = suite.tests.filter((t) => !t.passed)
+          if (failedTests.length > 0) {
+            for (const test of failedTests) {
+              Logger.warn('Diagnostics', `  ❌ ${test.name}: ${test.error}`)
+            }
+          }
+        }
+      })
+    } catch (error) {
+      Logger.error('Diagnostics', 'Test execution failed', error)
+    }
+  }
+
+  /**
+   * Quick test for basic functionality
+   */
+  static async quickTest(): Promise<boolean> {
+    try {
+      return await ExtensionTester.quickHealthCheck()
+    } catch (error) {
+      Logger.error('Diagnostics', 'Quick test failed', error)
+      return false
+    }
+  }
+
+  /**
+   * Generates and downloads test report
+   */
+  static async downloadTestReport(): Promise<void> {
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      Logger.warn('Diagnostics', 'Download not available in this context')
+      return
+    }
+
+    try {
+      Logger.info('Diagnostics', 'Generating test report...')
+      const report = await ExtensionTester.generateTestReport()
+
+      const blob = new Blob([report], { type: 'text/markdown' })
+      const url = URL.createObjectURL(blob)
+
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `extension-test-report-${Date.now()}.md`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      Logger.info('Diagnostics', 'Test report downloaded')
+    } catch (error) {
+      Logger.error('Diagnostics', 'Failed to download test report', error)
+    }
   }
 }

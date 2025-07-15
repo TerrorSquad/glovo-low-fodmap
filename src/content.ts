@@ -23,10 +23,20 @@ if (process.env.NODE_ENV === 'development') {
     performance() {
       DiagnosticUtils.debugPerformance()
     },
+    async tests() {
+      await DiagnosticUtils.runTests()
+    },
+    async quickTest() {
+      const passed = await DiagnosticUtils.quickTest()
+      console.log(`Quick test: ${passed ? '✅ PASSED' : '❌ FAILED'}`)
+      return passed
+    },
   }
 
   // Make available globally
   ;(window as any).fodmapDebug = debugUtils
 
-  Logger.info('Content', 'Debug utilities available at window.fodmapDebug')
+  Logger.info('Content', 'Debug utilities available at window.fodmapDebug', {
+    methods: Object.keys(debugUtils),
+  })
 }

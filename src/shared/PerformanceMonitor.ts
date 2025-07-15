@@ -28,6 +28,15 @@ export class PerformanceMonitor {
     PerformanceMonitor.timers.delete(name)
 
     Logger.perf('Performance', name, duration)
+
+    // Record metrics if MetricsCollector is available
+    try {
+      const { MetricsCollector } = require('./MetricsCollector')
+      MetricsCollector.recordPerformance(name, duration)
+    } catch {
+      // MetricsCollector not available, ignore
+    }
+
     return duration
   }
 

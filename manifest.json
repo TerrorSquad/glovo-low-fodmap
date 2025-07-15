@@ -10,7 +10,7 @@
     "type": "module"
   },
   "action": {
-    "default_popup": "index.html"
+    "default_popup": "src/popup.html"
   },
   "content_scripts": [
     {

@@ -1,3 +1,4 @@
+import { DiagnosticUtils } from '../shared/DiagnosticUtils'
 import { type InjectedProductData } from '../shared/types'
 import { CardManager } from './CardManager'
 import { type IFodmapHelper, MessageHandler } from './MessageHandler'
@@ -64,6 +65,20 @@ export class FodmapHelper implements IFodmapHelper {
     this.updateInterval = window.setInterval(() => {
       this.updatePageStyles()
     }, 1000)
+  }
+
+  /**
+   * Debug helper - get diagnostic report
+   */
+  async getDiagnostics(): Promise<void> {
+    await DiagnosticUtils.logDiagnostics()
+  }
+
+  /**
+   * Debug helper - quick health check
+   */
+  async healthCheck(): Promise<string> {
+    return await DiagnosticUtils.quickHealthCheck()
   }
 
   destroy(): void {

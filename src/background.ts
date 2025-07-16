@@ -5,8 +5,7 @@ import { ErrorHandler } from './shared/ErrorHandler'
 import { ExtensionMonitor } from './shared/ExtensionMonitor'
 
 // Initialize the background services
-const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT
-const syncOrchestrator = new SyncOrchestrator(API_ENDPOINT)
+const syncOrchestrator = SyncOrchestrator.getInstance()
 const messageHandler = new BackgroundMessageHandler(syncOrchestrator)
 const monitor = ExtensionMonitor.getInstance()
 

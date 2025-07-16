@@ -1,108 +1,110 @@
 import { Config } from '../shared/Config'
 import type { Product } from '../shared/db'
+import { ErrorBoundary } from '../shared/ErrorBoundary'
 import { ErrorHandler } from '../shared/ErrorHandler'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import { ContentMessenger } from './ContentMessenger'
 import { FodmapApiClient } from './FodmapApiClient'
 
+type SyncType = 'manual' | 'periodic' | 'unknown'
+
 /**
- * Orchestrates the background sync process
+ * Orchestrates background sync operations using submit-and-poll pattern
  */
 export class SyncOrchestrator {
-  private apiClient: FodmapApiClient
-  private syncTimer?: ReturnType<typeof setInterval>
-  private lastSyncTime: number = 0
-  private isSyncing: boolean = false
+  private static instance?: SyncOrchestrator
+  private readonly apiClient: FodmapApiClient
+  private isSyncing = false
+  private isPolling = false
+  private lastSyncTime = 0
+  private syncInterval?: NodeJS.Timeout
+  private pollInterval?: NodeJS.Timeout
 
-  constructor(apiEndpoint: string) {
-    this.apiClient = new FodmapApiClient(apiEndpoint)
+  private constructor() {
+    this.apiClient = new FodmapApiClient(Config.API_ENDPOINT)
   }
 
-  /**
-   * Starts periodic background sync
-   */
-  startPeriodicSync(): void {
-    if (!Config.ENABLE_SYNC) {
-      ErrorHandler.logInfo(
-        'Background',
-        'Sync is disabled, not starting periodic sync',
-      )
-      return
+  static getInstance(): SyncOrchestrator {
+    if (!SyncOrchestrator.instance) {
+      SyncOrchestrator.instance = new SyncOrchestrator()
     }
-
-    if (!this.apiClient.isConfigured()) {
-      ErrorHandler.logWarning(
-        'Background',
-        'API not configured, cannot start periodic sync',
-      )
-      return
-    }
-
-    if (this.syncTimer) {
-      ErrorHandler.logWarning('Background', 'Periodic sync already running')
-      return
-    }
-
-    const intervalMs = Config.SYNC_INTERVAL
-    ErrorHandler.logInfo(
-      'Background',
-      `Starting periodic sync every ${intervalMs / 1000} seconds`,
-    )
-
-    this.syncTimer = setInterval(() => {
-      this.performPeriodicSync()
-    }, intervalMs)
-
-    // Perform initial sync after a short delay
-    setTimeout(() => this.performPeriodicSync(), 5000)
+    return SyncOrchestrator.instance
   }
 
-  /**
-   * Stops periodic background sync
-   */
-  stopPeriodicSync(): void {
-    if (this.syncTimer) {
-      clearInterval(this.syncTimer)
-      this.syncTimer = undefined
-      ErrorHandler.logInfo('Background', 'Stopped periodic sync')
-    }
+  async startPeriodicSync(): Promise<void> {
+    await ErrorBoundary.protect(async () => {
+      if (this.syncInterval) {
+        return
+      }
+
+      ErrorHandler.logInfo('Background', 'Starting periodic sync and polling')
+
+      // Start submit sync (for new unknown/pending products)
+      this.syncInterval = setInterval(() => {
+        this.performSubmitSync('periodic').catch((error: unknown) => {
+          ErrorHandler.logError('Background', error, {
+            context: 'Periodic submit sync',
+          })
+        })
+      }, Config.SYNC_INTERVAL)
+
+      // Start status polling (for previously submitted products)
+      this.pollInterval = setInterval(() => {
+        this.performStatusPoll().catch((error: unknown) => {
+          ErrorHandler.logError('Background', error, {
+            context: 'Periodic status polling',
+          })
+        })
+      }, Config.SYNC_POLL_INTERVAL)
+
+      // Perform initial sync
+      await this.performSubmitSync('periodic')
+    }, 'SyncOrchestrator.startPeriodicSync')
   }
 
-  /**
-   * Performs a sync operation (either manual or periodic)
-   */
+  async stopPeriodicSync(): Promise<void> {
+    await ErrorBoundary.protect(async () => {
+      if (this.syncInterval) {
+        clearInterval(this.syncInterval)
+        this.syncInterval = undefined
+      }
+      if (this.pollInterval) {
+        clearInterval(this.pollInterval)
+        this.pollInterval = undefined
+      }
+      ErrorHandler.logInfo('Background', 'Stopped periodic sync and polling')
+    }, 'SyncOrchestrator.stopPeriodicSync')
+  }
+
   async syncPendingProducts(): Promise<void> {
-    return await this.performSync('manual', 'syncPendingProducts')
+    return await this.performSubmitSync('manual')
   }
 
   async syncUnknownProducts(): Promise<void> {
-    return await this.performSync('unknown', 'syncUnknownProducts')
+    return await this.performSubmitSync('unknown')
   }
 
-  private async performPeriodicSync(): Promise<void> {
-    return await this.performSync('periodic')
+  async forcePollStatus(): Promise<void> {
+    return await this.performStatusPoll()
   }
 
-  private async performSync(
-    syncType: 'manual' | 'periodic' | 'unknown',
-    caller?: string,
-  ): Promise<void> {
-    return await PerformanceMonitor.measureAsync(
-      'syncPendingProducts',
+  private async performSubmitSync(syncType: SyncType): Promise<void> {
+    await PerformanceMonitor.measureAsync(
+      'performSubmitSync',
       async () => {
-        try {
+        await ErrorBoundary.protect(async () => {
           if (this.isSyncing) {
             ErrorHandler.logInfo(
               'Background',
-              `Skipping ${syncType} sync - already in progress`,
+              'Submit sync already in progress, skipping',
             )
             return
           }
 
           if (!this.apiClient.isConfigured()) {
-            ErrorHandler.logWarning(
+            ErrorHandler.logInfo(
               'Background',
-              'API endpoint is not configured',
+              'API client not configured, skipping submit sync',
             )
             return
           }
@@ -112,85 +114,154 @@ export class SyncOrchestrator {
 
           const tab = await ContentMessenger.findActiveGlovoTab()
           if (!tab?.id) {
-            if (syncType === 'manual') {
+            if (syncType === 'manual' || syncType === 'unknown') {
               ErrorHandler.logInfo(
                 'Background',
-                'No active Glovo tab found for manual sync',
+                `No active Glovo tab found for ${syncType} sync`,
               )
             }
             return
           }
 
-          let pendingProducts: Product[]
+          // Get products to submit based on sync type
+          let productsToSubmit: Product[]
           if (syncType === 'unknown') {
-            pendingProducts = await ContentMessenger.getUnknownProducts()
+            productsToSubmit = await ContentMessenger.getUnknownProducts()
           } else {
-            pendingProducts = await ContentMessenger.getPendingProducts()
+            productsToSubmit = await ContentMessenger.getPendingProducts()
           }
 
-          if (!pendingProducts.length) {
-            if (syncType === 'manual') {
-              ErrorHandler.logInfo(
-                'Background',
-                'No products to classify from content script',
-              )
-            }
+          if (!productsToSubmit.length) {
+            ErrorHandler.logInfo(
+              'Background',
+              `No products to submit for ${syncType} sync`,
+            )
             return
           }
 
           ErrorHandler.logInfo(
             'Background',
-            `${syncType} sync: Processing ${pendingProducts.length} products...`,
+            `Starting ${syncType} submit sync for ${productsToSubmit.length} products`,
           )
 
-          const classifiedProducts =
-            await this.apiClient.classifyProducts(pendingProducts)
+          // Submit products to API
+          const submitResult =
+            await this.apiClient.submitProducts(productsToSubmit)
 
-          if (classifiedProducts.length > 0) {
-            await ContentMessenger.updateProductStatuses(classifiedProducts)
-            this.lastSyncTime = syncStartTime
+          if (submitResult.success) {
+            // Mark submitted products as pending
+            const updatedProducts = productsToSubmit.map((product) => ({
+              ...product,
+              status: 'PENDING' as const,
+            }))
 
-            // Store last sync time in storage for persistence
-            await chrome.storage.local.set({
-              [Config.STORAGE_KEYS.LAST_SYNC]: this.lastSyncTime,
-            })
+            await ContentMessenger.updateProductStatuses(updatedProducts)
+
+            const syncDuration = Date.now() - syncStartTime
+            this.lastSyncTime = Date.now()
 
             ErrorHandler.logInfo(
               'Background',
-              `${syncType} sync completed: ${classifiedProducts.length} products classified and updated`,
+              `${syncType} submit sync completed: ${submitResult.submitted_count} products submitted in ${syncDuration}ms`,
             )
+          } else {
+            throw new Error(`Submit sync failed: ${submitResult.message}`)
           }
-        } catch (error) {
-          ErrorHandler.logError('Background', error, {
-            context: `${syncType} sync process`,
-          })
-        } finally {
-          this.isSyncing = false
-        }
+        }, `SyncOrchestrator.performSubmitSync.${syncType}`)
       },
       {
-        threshold: 2000, // Log if sync takes > 2 seconds
-        metadata: { syncType, caller },
+        threshold: 2000,
+        metadata: { syncType },
       },
     )
+    this.isSyncing = false
   }
 
-  /**
-   * Gets sync status information
-   */
+  private async performStatusPoll(): Promise<void> {
+    await PerformanceMonitor.measureAsync(
+      'performStatusPoll',
+      async () => {
+        await ErrorBoundary.protect(async () => {
+          if (this.isPolling) {
+            return
+          }
+
+          if (!this.apiClient.isConfigured()) {
+            return
+          }
+
+          this.isPolling = true
+
+          const tab = await ContentMessenger.findActiveGlovoTab()
+          if (!tab?.id) {
+            return
+          }
+
+          // Get products with pending status
+          const pendingProducts = await ContentMessenger.getPendingProducts()
+          const unknownProducts = await ContentMessenger.getUnknownProducts()
+          const allProducts = [...pendingProducts, ...unknownProducts]
+          const externalIds = allProducts.map((p) => p.externalId)
+
+          if (!externalIds.length) {
+            return
+          }
+
+          // Poll for status updates
+          const statusResult =
+            await this.apiClient.pollProductStatus(externalIds)
+
+          if (statusResult.results.length > 0) {
+            // Update products with new statuses (only non-PENDING)
+            const updatedProducts = statusResult.results
+              .filter((apiProduct) => apiProduct.status !== 'PENDING') // Only update completed classifications
+              .map((apiProduct) => {
+                const originalProduct = allProducts.find(
+                  (p) => p.externalId === apiProduct.externalId,
+                )
+                if (!originalProduct) return null
+
+                return {
+                  ...originalProduct,
+                  status: apiProduct.status, // Status is already in correct format (LOW/HIGH/UNKNOWN/PENDING)
+                } as Product
+              })
+              .filter((product): product is Product => product !== null)
+
+            if (updatedProducts.length > 0) {
+              await ContentMessenger.updateProductStatuses(updatedProducts)
+
+              ErrorHandler.logInfo(
+                'Background',
+                `Status poll completed: ${updatedProducts.length} products updated (${statusResult.found} found, ${statusResult.missing} missing)`,
+              )
+            } else if (statusResult.results.length > 0) {
+              ErrorHandler.logInfo(
+                'Background',
+                `Status poll completed: All ${statusResult.results.length} products still pending`,
+              )
+            }
+          }
+        }, 'SyncOrchestrator.performStatusPoll')
+      },
+      {
+        threshold: 1000,
+      },
+    )
+    this.isPolling = false
+  }
+
   getSyncStatus(): {
-    isRunning: boolean
     isSyncing: boolean
+    isPolling: boolean
     lastSyncTime: number
-    nextSyncTime: number | null
+    nextSyncTime?: number
   } {
     return {
-      isRunning: !!this.syncTimer,
       isSyncing: this.isSyncing,
+      isPolling: this.isPolling,
       lastSyncTime: this.lastSyncTime,
-      nextSyncTime: this.syncTimer
-        ? this.lastSyncTime + Config.SYNC_INTERVAL
-        : null,
+      nextSyncTime: this.lastSyncTime + Config.SYNC_INTERVAL,
     }
   }
 }

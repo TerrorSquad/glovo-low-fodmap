@@ -27,6 +27,8 @@ export class Config {
   // Sync Configuration
   static readonly SYNC_INTERVAL =
     Number(import.meta.env.VITE_SYNC_INTERVAL) || 300000 // 5 minutes default
+  static readonly SYNC_POLL_INTERVAL =
+    Number(import.meta.env.VITE_SYNC_POLL_INTERVAL) || 150000 // 2.5 minutes default
   static readonly SYNC_RETRY_ATTEMPTS =
     Number(import.meta.env.VITE_SYNC_RETRY_ATTEMPTS) || 3
   static readonly SYNC_RETRY_DELAY =
@@ -74,6 +76,10 @@ export class Config {
       issues.push('Sync interval should be at least 60 seconds (60000ms)')
     }
 
+    if (Config.SYNC_POLL_INTERVAL < 60000) {
+      issues.push('Sync poll interval should be at least 60 seconds (60000ms)')
+    }
+
     if (Config.SYNC_RETRY_ATTEMPTS < 1 || Config.SYNC_RETRY_ATTEMPTS > 10) {
       issues.push('Sync retry attempts should be between 1 and 10')
     }
@@ -110,6 +116,7 @@ export class Config {
       periodicUpdateEnabled: Config.ENABLE_PERIODIC_UPDATE,
       updateInterval: Config.UPDATE_INTERVAL,
       syncInterval: Config.SYNC_INTERVAL,
+      syncPollInterval: Config.SYNC_POLL_INTERVAL,
       syncRetryAttempts: Config.SYNC_RETRY_ATTEMPTS,
       syncRetryDelay: Config.SYNC_RETRY_DELAY,
       syncBatchSize: Config.SYNC_BATCH_SIZE,

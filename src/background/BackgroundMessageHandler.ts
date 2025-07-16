@@ -7,6 +7,7 @@ export type BackgroundMessageAction =
   | 'syncUnknownProducts'
   | 'newProductsFound'
   | 'getSyncStatus'
+  | 'pollStatus'
 
 export interface BackgroundMessage {
   action: BackgroundMessageAction
@@ -52,6 +53,10 @@ export class BackgroundMessageHandler {
                 data: this.syncOrchestrator.getSyncStatus(),
               }
 
+            case 'pollStatus':
+              this.handlePollStatus()
+              return { success: true }
+
             default: {
               const errorMsg = `Unknown message action: ${message.action}`
               ErrorHandler.logWarning('Background', errorMsg)
@@ -87,6 +92,15 @@ export class BackgroundMessageHandler {
   private handleUnknownProductsSync(): void {
     ErrorHandler.logInfo('Background', 'Received unknown products sync request')
     this.syncOrchestrator.syncUnknownProducts()
+  }
+
+  private handlePollStatus(): void {
+    ErrorHandler.logInfo('Background', 'Manual status poll requested')
+    this.syncOrchestrator.forcePollStatus().catch((error) => {
+      ErrorHandler.logError('Background', error, {
+        context: 'Manual status polling',
+      })
+    })
   }
 
   setupListener(): void {

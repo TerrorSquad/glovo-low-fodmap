@@ -10,6 +10,7 @@ export class PopupController {
   private darkModeToggle: HTMLInputElement
   private syncButton: HTMLButtonElement
   private syncUnknownButton: HTMLButtonElement
+  private pollStatusButton: HTMLButtonElement
   private statusElement: HTMLElement
   private statusIcon: HTMLElement
   private statusText: HTMLElement
@@ -33,6 +34,9 @@ export class PopupController {
     this.syncButton = document.getElementById('syncButton') as HTMLButtonElement
     this.syncUnknownButton = document.getElementById(
       'syncUnknownButton',
+    ) as HTMLButtonElement
+    this.pollStatusButton = document.getElementById(
+      'pollStatusButton',
     ) as HTMLButtonElement
 
     // Status elements
@@ -66,7 +70,8 @@ export class PopupController {
       !this.toggleSwitch ||
       !this.darkModeToggle ||
       !this.syncButton ||
-      !this.syncUnknownButton
+      !this.syncUnknownButton ||
+      !this.pollStatusButton
     ) {
       throw new Error('Required DOM elements not found')
     }
@@ -165,6 +170,7 @@ export class PopupController {
       'click',
       this.handleSyncUnknownClick,
     )
+    this.pollStatusButton.addEventListener('click', this.handlePollStatusClick)
 
     // Debug event listeners
     this.healthCheckButton.addEventListener('click', this.handleHealthCheck)
@@ -284,6 +290,34 @@ export class PopupController {
     }
   }
 
+  private handlePollStatusClick = async (): Promise<void> => {
+    try {
+      this.updateStatus('Polling status...', 'warning')
+      this.pollStatusButton.disabled = true
+
+      ErrorHandler.logInfo('Popup', 'Poll status button clicked')
+      chrome.runtime.sendMessage({ action: 'pollStatus' })
+
+      // Wait a moment then refresh statistics
+      setTimeout(async () => {
+        await this.loadStatistics()
+        this.updateStatus('Status poll completed', 'healthy')
+        this.pollStatusButton.disabled = false
+
+        // Reset status after 3 seconds
+        setTimeout(() => {
+          this.updateStatus('Ready', 'healthy')
+        }, 3000)
+      }, 2000)
+    } catch (error) {
+      ErrorHandler.logError('Popup', error, {
+        context: 'Poll status button click',
+      })
+      this.updateStatus('Status poll failed', 'error')
+      this.pollStatusButton.disabled = false
+    }
+  }
+
   private sendMessageToActiveTab(message: any): void {
     try {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -379,6 +413,12 @@ export class PopupController {
     if ((event.ctrlKey || event.metaKey) && event.key === 'u') {
       event.preventDefault()
       this.handleSyncUnknownClick()
+    }
+
+    // Ctrl/Cmd + P: Poll status
+    if ((event.ctrlKey || event.metaKey) && event.key === 'p') {
+      event.preventDefault()
+      this.handlePollStatusClick()
     }
 
     // Ctrl/Cmd + D: Toggle dark mode

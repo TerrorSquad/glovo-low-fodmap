@@ -139,7 +139,7 @@ export class CardManager {
         }
       },
       {
-        threshold: 5, // Only log if update takes more than 5ms
+        threshold: 10, // Only log if update takes more than 10ms
         debugOnly: false, // Log updateAllCards even in non-debug mode but only when slow
         metadata: { hideNonLowFodmap },
       },

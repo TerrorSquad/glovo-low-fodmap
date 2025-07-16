@@ -164,6 +164,26 @@ export class SyncOrchestrator {
               'Background',
               `${syncType} submit sync completed: ${submitResult.submitted_count} products submitted in ${syncDuration}ms`,
             )
+
+            // Immediately poll for any quick classifications
+            ErrorHandler.logInfo(
+              'Background',
+              'Performing immediate status poll after submission...',
+            )
+
+            // Small delay to allow for quick processing
+            await new Promise((resolve) => setTimeout(resolve, 1000))
+
+            try {
+              await this.performImmediateStatusPoll(
+                productsToSubmit.map((p) => p.externalId),
+              )
+            } catch (error) {
+              ErrorHandler.logError('Background', error, {
+                context: 'Immediate status poll after submission',
+              })
+              // Don't fail the entire submission if polling fails
+            }
           } else {
             throw new Error(`Submit sync failed: ${submitResult.message}`)
           }
@@ -249,6 +269,58 @@ export class SyncOrchestrator {
       },
     )
     this.isPolling = false
+  }
+
+  /**
+   * Performs an immediate status poll for specific product IDs after submission
+   */
+  private async performImmediateStatusPoll(
+    productIds: string[],
+  ): Promise<void> {
+    if (productIds.length === 0) return
+
+    await ErrorBoundary.protect(async () => {
+      ErrorHandler.logInfo(
+        'Background',
+        `Starting immediate status poll for ${productIds.length} products`,
+      )
+
+      const statusResult = await this.apiClient.pollProductStatus(productIds)
+
+      if (statusResult.results.length > 0) {
+        // Get pending products to have full Product objects
+        const pendingProducts = await ContentMessenger.getPendingProducts()
+
+        const updatedProducts = statusResult.results
+          .filter((apiProduct) => apiProduct.status !== 'PENDING') // Only update completed classifications
+          .map((apiProduct) => {
+            const originalProduct = pendingProducts.find(
+              (p: Product) => p.externalId === apiProduct.externalId,
+            )
+            if (!originalProduct) return null
+
+            return {
+              ...originalProduct,
+              status: apiProduct.status,
+            } as Product
+          })
+          .filter((product): product is Product => product !== null)
+
+        if (updatedProducts.length > 0) {
+          await ContentMessenger.updateProductStatuses(updatedProducts)
+
+          ErrorHandler.logInfo(
+            'Background',
+            `Immediate status poll completed: ${updatedProducts.length} products quickly classified`,
+          )
+        } else {
+          ErrorHandler.logInfo(
+            'Background',
+            'Immediate status poll: All products still pending classification',
+          )
+        }
+      }
+    }, 'SyncOrchestrator.performImmediateStatusPoll')
   }
 
   getSyncStatus(): {

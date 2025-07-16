@@ -15,9 +15,14 @@ type BadgeConfig = {
 export class StyleManager {
   private static readonly CSS_CLASSES = {
     LOW_HIGHLIGHT: 'fodmap-low-highlight',
+    HIGH_DIMMED: 'fodmap-high-dimmed',
+    UNKNOWN_SUBTLE: 'fodmap-unknown-subtle',
+    PENDING_PROCESSING: 'fodmap-pending-processing',
     CARD_HIDDEN: 'fodmap-card-hidden',
     BADGE: 'fodmap-badge',
     BADGE_HIGH: 'fodmap-badge-high',
+    BADGE_UNKNOWN: 'fodmap-badge-unknown',
+    BADGE_PENDING: 'fodmap-badge-pending',
   } as const
 
   private static readonly STATUS_CONFIG: Record<
@@ -25,19 +30,29 @@ export class StyleManager {
     BadgeConfig | null
   > = {
     LOW: {
-      title: 'Low-FODMAP',
-      icon: StyleManager.getCheckIcon(),
+      title: 'Low-FODMAP - Safe to eat',
+      icon: '✓',
       className: StyleManager.CSS_CLASSES.BADGE,
       ariaLabel: 'This product is low in FODMAPs and suitable for the diet',
     },
     HIGH: {
-      title: 'High-FODMAP',
-      icon: StyleManager.getCrossIcon(),
+      title: 'High-FODMAP - Avoid',
+      icon: '✗',
       className: `${StyleManager.CSS_CLASSES.BADGE} ${StyleManager.CSS_CLASSES.BADGE_HIGH}`,
       ariaLabel: 'This product is high in FODMAPs and should be avoided',
     },
-    UNKNOWN: null,
-    PENDING: null,
+    UNKNOWN: {
+      title: 'FODMAP status unknown',
+      icon: '?',
+      className: `${StyleManager.CSS_CLASSES.BADGE} ${StyleManager.CSS_CLASSES.BADGE_UNKNOWN}`,
+      ariaLabel: 'FODMAP status for this product is not yet determined',
+    },
+    PENDING: {
+      title: 'Analyzing FODMAP content...',
+      icon: '⋯',
+      className: `${StyleManager.CSS_CLASSES.BADGE} ${StyleManager.CSS_CLASSES.BADGE_PENDING}`,
+      ariaLabel: 'FODMAP classification is currently being processed',
+    },
   }
 
   static applyToCard(
@@ -90,20 +105,36 @@ export class StyleManager {
     // Remove all FODMAP-related classes
     card.classList.remove(
       StyleManager.CSS_CLASSES.LOW_HIGHLIGHT,
+      StyleManager.CSS_CLASSES.HIGH_DIMMED,
+      StyleManager.CSS_CLASSES.UNKNOWN_SUBTLE,
+      StyleManager.CSS_CLASSES.PENDING_PROCESSING,
       StyleManager.CSS_CLASSES.CARD_HIDDEN,
     )
     card.querySelector(`.${StyleManager.CSS_CLASSES.BADGE}`)?.remove()
-    card.style.position = 'relative'
+    // Don't force position: relative as it might interfere with Glovo's layout
   }
 
   private static applyStatus(card: HTMLElement, status: FodmapStatus): void {
     const config = StyleManager.STATUS_CONFIG[status]
 
-    if (config) {
-      if (status === 'LOW') {
+    // Apply status-specific card styling
+    switch (status) {
+      case 'LOW':
         card.classList.add(StyleManager.CSS_CLASSES.LOW_HIGHLIGHT)
-      }
+        break
+      case 'HIGH':
+        card.classList.add(StyleManager.CSS_CLASSES.HIGH_DIMMED)
+        break
+      case 'UNKNOWN':
+        card.classList.add(StyleManager.CSS_CLASSES.UNKNOWN_SUBTLE)
+        break
+      case 'PENDING':
+        card.classList.add(StyleManager.CSS_CLASSES.PENDING_PROCESSING)
+        break
+    }
 
+    // Add badge for all statuses
+    if (config) {
       StyleManager.addBadge(
         card,
         config.title,
@@ -129,6 +160,12 @@ export class StyleManager {
     className: string,
     ariaLabel: string,
   ): void {
+    // Ensure card has relative positioning for badge positioning
+    const computedStyle = window.getComputedStyle(card)
+    if (computedStyle.position === 'static') {
+      card.style.position = 'relative'
+    }
+
     const badge = document.createElement('div')
     badge.className = className
     badge.title = title
@@ -136,13 +173,5 @@ export class StyleManager {
     badge.setAttribute('aria-label', ariaLabel)
     badge.setAttribute('role', 'img')
     card.appendChild(badge)
-  }
-
-  private static getCheckIcon(): string {
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z"/></svg>`
-  }
-
-  private static getCrossIcon(): string {
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M24 20.188l-8.315-8.209 8.2-8.282-3.697-3.697-8.212 8.318-8.31-8.203-3.666 3.666 8.321 8.24-8.206 8.313 3.666 3.666 8.237-8.318 8.285 8.203z"/></svg>`
   }
 }

@@ -109,6 +109,8 @@ export class CardManager {
             const product = dbMap.get(externalId)
             if (product) {
               const currentStatus = card.dataset.fodmapStatus
+
+              // Determine visibility: hide only if user wants to hide AND product is not LOW
               const shouldBeHidden =
                 product.status !== 'LOW' && hideNonLowFodmap
               const isCurrentlyHidden =
@@ -129,7 +131,7 @@ export class CardManager {
           if (changedCards > 0) {
             ErrorHandler.logInfo(
               'Content',
-              `Updated styles for ${changedCards}/${allCards.length} cards`,
+              `Updated styles for ${changedCards}/${allCards.length} cards (${hideNonLowFodmap ? 'hiding non-LOW' : 'showing all'})`,
             )
           }
         } catch (error) {

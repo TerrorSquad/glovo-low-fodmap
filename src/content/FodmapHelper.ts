@@ -8,25 +8,60 @@ import { ProductManager } from './ProductManager'
 import { StorageManager } from './StorageManager'
 
 /**
- * Main class that orchestrates the FODMAP helper functionality
+ * Main orchestrator class for the FODMAP Helper Chrome extension.
+ * Coordinates product scanning, FODMAP classification, UI updates, and user interactions.
+ * Acts as the central controller that ties together all content script functionality.
+ *
+ * Key responsibilities:
+ * - Scanning Glovo pages for products
+ * - Managing product data and FODMAP classifications
+ * - Updating UI with visual indicators
+ * - Handling user preference changes
+ * - Coordinating with background script for API operations
  */
 export class FodmapHelper implements IFodmapHelper {
+  /** Controls whether non-low-FODMAP products should be hidden */
   private hideNonLowFodmap = false
+  /** Handles Chrome extension messaging */
   private messageHandler: MessageHandler
+  /** Timer for periodic product scanning */
   private updateInterval?: number
+  /** Observes DOM changes to detect new products */
   private mutationObserver?: MutationObserver
 
+  /**
+   * Initializes the FodmapHelper instance
+   * Creates message handler and sets up communication with background script
+   *
+   * Called automatically when content script loads on Glovo pages
+   */
   constructor() {
     this.messageHandler = new MessageHandler(this)
-
-    // Setup error boundary recovery strategies
-    ErrorBoundary.setupDefaultRecoveryStrategies()
   }
 
+  /**
+   * Initializes all extension functionality on the page
+   * Orchestrates the complete setup process including DOM scanning,
+   * style application, and event listener setup
+   *
+   * @returns Promise that resolves when initialization is complete
+   *
+   * Initialization sequence:
+   * 1. Sets up default error recovery strategies
+   * 2. Loads user settings and preferences
+   * 3. Performs initial DOM scan for existing products
+   * 4. Sets up DOM mutation observer for dynamic content
+   * 5. Establishes Chrome runtime message listeners
+   * 6. Starts periodic style updates
+   * 7. Applies current FODMAP styling to page
+   *
+   * Called by: Content script main entry point after DOM is ready
+   */
   async init(): Promise<void> {
     return (
       (await ErrorBoundary.protect(
         async () => {
+          ErrorBoundary.setupDefaultRecoveryStrategies()
           this.setupEventListeners()
           await this.loadSettings()
 
@@ -57,16 +92,34 @@ export class FodmapHelper implements IFodmapHelper {
     )
   }
 
+  /**
+   * Updates the user preference for hiding non-low-FODMAP products.
+   * Called when user toggles the hide/show setting in the popup.
+   *
+   * @param hide - Whether to hide non-low-FODMAP products
+   */
   setHideNonLowFodmap(hide: boolean): void {
     this.hideNonLowFodmap = hide
   }
 
+  /**
+   * Updates visual styling of all product cards on the page.
+   * Applies FODMAP indicators and visibility based on user preferences.
+   * Called after classification updates or setting changes.
+   */
   async updatePageStyles(): Promise<void> {
     ;(await ErrorBoundary.protect(async () => {
       await CardManager.updateAllCards(this.hideNonLowFodmap)
     }, 'update-styles')) ?? Promise.resolve()
   }
 
+  /**
+   * Sets up Chrome runtime message listeners for communication with background script
+   * Enables the extension to receive commands, data updates, and setting changes
+   *
+   * Handles messages for: Product data updates, setting changes, diagnostic requests,
+   * and communication between popup, background, and content scripts
+   */
   private setupEventListeners(): void {
     // Listen for injected product data
     window.addEventListener('message', (event) => {
@@ -84,6 +137,16 @@ export class FodmapHelper implements IFodmapHelper {
     )
   }
 
+  /**
+   * Handles new products injected by content script or DOM scanning
+   * Saves products to database and immediately applies visual tags to cards
+   *
+   * @param products - Array of product data to process and save
+   * @returns Promise that resolves when products are saved and cards are tagged
+   *
+   * Used by: Message handlers when receiving product data from background scripts,
+   * and DOM scanning when new products are detected on the page
+   */
   private async handleIncomingProducts(
     products: InjectedProductData[],
   ): Promise<void> {
@@ -91,10 +154,26 @@ export class FodmapHelper implements IFodmapHelper {
     CardManager.tagVisibleCards(products)
   }
 
+  /**
+   * Loads user preferences from storage
+   * Currently loads the "hide non-low FODMAP" setting which controls
+   * whether high/unknown FODMAP products should be visually hidden
+   *
+   * @returns Promise that resolves when settings are loaded and applied to instance
+   *
+   * Called during: Initialization and when settings change via popup or options
+   */
   private async loadSettings(): Promise<void> {
     this.hideNonLowFodmap = await StorageManager.getHideNonLowFodmap()
   }
 
+  /**
+   * Starts periodic updates of page styling to maintain FODMAP indicators
+   * Updates every 1000ms to ensure styles remain consistent as page content changes
+   *
+   * Handles: Dynamic content loading, user interactions that modify DOM,
+   * and ensures FODMAP styling persists through page changes
+   */
   private startPeriodicUpdate(): void {
     this.updateInterval = window.setInterval(() => {
       this.updatePageStyles()
@@ -102,19 +181,38 @@ export class FodmapHelper implements IFodmapHelper {
   }
 
   /**
-   * Debug helper - get diagnostic report
+   * Debug helper - generates and logs comprehensive diagnostic report
+   * Includes database status, extension state, and performance metrics
+   *
+   * @returns Promise that resolves when diagnostics are logged to console
+   *
+   * Used for: Troubleshooting extension issues, performance analysis,
+   * and debugging user-reported problems
    */
   async getDiagnostics(): Promise<void> {
     await DiagnosticUtils.logDiagnostics()
   }
 
   /**
-   * Debug helper - quick health check
+   * Debug helper - performs quick health check of extension components
+   * Returns summary status of database, styling, and core functionality
+   *
+   * @returns Promise that resolves to health status string
+   *
+   * Used for: Quick validation that extension is working properly,
+   * popup status display, and automated health monitoring
    */
   async healthCheck(): Promise<string> {
     return await DiagnosticUtils.quickHealthCheck()
   }
 
+  /**
+   * Cleanup method to properly dispose of resources when extension is disabled
+   * Clears intervals and disconnects observers to prevent memory leaks
+   *
+   * Called when: Extension is disabled, page unloads, or content script is removed
+   * Prevents: Memory leaks from running intervals and active DOM observers
+   */
   destroy(): void {
     if (this.updateInterval) {
       clearInterval(this.updateInterval)
@@ -215,6 +313,15 @@ export class FodmapHelper implements IFodmapHelper {
 
   /**
    * Sets up mutation observer to detect dynamically added products
+   * Monitors DOM changes for new product cards and automatically processes them
+   *
+   * Handles: Single-page app navigation, infinite scroll loading,
+   * dynamic content updates, and AJAX-loaded product lists
+   *
+   * When new products are detected:
+   * 1. Looks up existing products in database by name
+   * 2. Tags visible cards with FODMAP status
+   * 3. Applies appropriate styling based on current settings
    */
   private setupMutationObserver(): void {
     this.mutationObserver = DomProductScanner.setupMutationObserver(

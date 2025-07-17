@@ -97,13 +97,6 @@ export class MessageHandler {
               console.error('Error handling refreshStyles:', error)
             })
             break
-
-          case 're-evaluate':
-            // Handle async operation without blocking the message handler
-            this.handleReEvaluate(message).catch((error) => {
-              console.error('Error handling re-evaluate:', error)
-            })
-            break
         }
         return false
       } catch (error) {
@@ -350,29 +343,6 @@ export class MessageHandler {
       // Save the setting to storage for persistence
       await StorageManager.setHideNonLowFodmap(message.hideNonLowFodmap)
     }
-
-    // Force update all cards to ensure visibility changes take effect
-    await this.fodmapHelper.updatePageStyles()
-  }
-
-  /**
-   * Handles preference changes for hiding/showing non-low-FODMAP products
-   * Updates both runtime state and persistent storage, then refreshes page styling
-   *
-   * @param message - Chrome message containing hide preference boolean
-   *
-   * Process:
-   * 1. Updates FodmapHelper runtime preference
-   * 2. Persists setting to browser storage for future sessions
-   * 3. Triggers immediate page style refresh to apply changes
-   *
-   * Ensures preference changes take effect immediately and persist across sessions.
-   */
-  private async handleReEvaluate(message: ChromeMessage): Promise<void> {
-    this.fodmapHelper.setHideNonLowFodmap(message.hide || false)
-
-    // Save the setting to storage for persistence
-    await StorageManager.setHideNonLowFodmap(message.hide || false)
 
     // Force update all cards to ensure visibility changes take effect
     await this.fodmapHelper.updatePageStyles()

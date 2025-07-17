@@ -4,9 +4,18 @@ import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import type { InjectedProductData } from '../shared/types'
 
 /**
- * Manages product data operations
+ * Manages product data operations including saving, updating, and querying products.
+ * Acts as the main interface between the extension and the IndexedDB database for product data.
+ * Handles product lifecycle from initial discovery to FODMAP classification completion.
  */
 export class ProductManager {
+  /**
+   * Saves new products discovered from Glovo pages to the database.
+   * Only saves products that don't already exist to avoid duplicates.
+   * Newly discovered products start with PENDING status for classification.
+   *
+   * @param products - Array of product data extracted from Glovo pages
+   */
   static async saveNewProducts(products: InjectedProductData[]): Promise<void> {
     return await PerformanceMonitor.measureAsync(
       'saveNewProducts',
@@ -58,6 +67,13 @@ export class ProductManager {
     )
   }
 
+  /**
+   * Updates product statuses and timestamps based on API responses.
+   * Used to save classification results received from the FODMAP API.
+   * Updates both FODMAP status and processing timestamps.
+   *
+   * @param apiProducts - Products with updated status information from the API
+   */
   static async updateStatuses(apiProducts: Product[]): Promise<void> {
     return await PerformanceMonitor.measureAsync('updateStatuses', async () => {
       try {
@@ -109,6 +125,13 @@ export class ProductManager {
     })
   }
 
+  /**
+   * Retrieves products that need to be submitted to the FODMAP API for classification.
+   * Returns products with UNKNOWN or PENDING status that haven't been submitted yet.
+   * Used by sync operations to find products that need API processing.
+   *
+   * @returns Promise resolving to array of unsubmitted products
+   */
   static async getUnsubmittedProducts(): Promise<Product[]> {
     return (
       (await ErrorHandler.safeExecute(
@@ -128,6 +151,13 @@ export class ProductManager {
     )
   }
 
+  /**
+   * Retrieves products that have been submitted to the API but not yet processed.
+   * Returns products with PENDING status that have submittedAt but no processedAt timestamp.
+   * Used by polling operations to check for completed classifications.
+   *
+   * @returns Promise resolving to array of submitted but unprocessed products
+   */
   static async getSubmittedUnprocessedProducts(): Promise<Product[]> {
     return (
       (await ErrorHandler.safeExecute(
@@ -149,6 +179,13 @@ export class ProductManager {
     )
   }
 
+  /**
+   * Retrieves products by their external IDs and returns them as a Map for efficient lookup.
+   * Used when you need to quickly find specific products by their Glovo IDs.
+   *
+   * @param externalIds - Array of Glovo product IDs to search for
+   * @returns Promise resolving to Map with externalId as key and Product as value
+   */
   static async getProductsByExternalIds(
     externalIds: string[],
   ): Promise<Map<string, Product>> {
@@ -162,6 +199,13 @@ export class ProductManager {
     return new Map(products.map((p) => [p.externalId, p]))
   }
 
+  /**
+   * Retrieves products by their external IDs and returns them as an array.
+   * Similar to getProductsByExternalIds but returns an array instead of a Map.
+   *
+   * @param externalIds - Array of Glovo product IDs to search for
+   * @returns Promise resolving to array of matching products
+   */
   static async getProductsArrayByExternalIds(
     externalIds: string[],
   ): Promise<Product[]> {
@@ -175,6 +219,14 @@ export class ProductManager {
     )
   }
 
+  /**
+   * Retrieves products by their names using case-insensitive matching.
+   * Useful for finding products when you have the product name from the UI.
+   * Normalizes names by trimming whitespace and converting to lowercase.
+   *
+   * @param names - Array of product names to search for
+   * @returns Promise resolving to array of products with matching names
+   */
   static async getProductsByNames(names: string[]): Promise<Product[]> {
     return (
       (await ErrorHandler.safeExecute(
@@ -194,6 +246,13 @@ export class ProductManager {
     )
   }
 
+  /**
+   * Retrieves all products from the database.
+   * Used for statistics, export functionality, and debugging.
+   * Note: This can be memory-intensive with large product databases.
+   *
+   * @returns Promise resolving to array of all stored products
+   */
   static async getAllProducts(): Promise<Product[]> {
     return (
       (await ErrorHandler.safeExecute(

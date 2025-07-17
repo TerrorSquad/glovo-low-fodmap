@@ -3,11 +3,20 @@ import { ErrorHandler } from '../shared/ErrorHandler'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 
 /**
- * Handles communication with content scripts
+ * Handles communication between background script and content scripts.
+ * Provides abstraction layer for Chrome tabs messaging API with error handling.
+ * Manages finding active Glovo tabs and sending/receiving product data.
  */
 export class ContentMessenger {
+  /** URL pattern for matching Glovo website tabs */
   private static readonly GLOVO_URL_PATTERN = 'https://glovoapp.com/*'
 
+  /**
+   * Finds the currently active Glovo tab in the browser.
+   * Used to ensure operations only happen on Glovo pages.
+   *
+   * @returns Promise resolving to active Glovo tab or null if none found
+   */
   static async findActiveGlovoTab(): Promise<chrome.tabs.Tab | null> {
     return (
       (await ErrorHandler.safeExecute(
@@ -24,6 +33,14 @@ export class ContentMessenger {
     )
   }
 
+  /**
+   * Sends a message to a content script running in a specific tab.
+   * Wrapper around Chrome's tabs.sendMessage with error handling.
+   *
+   * @param tabId - Chrome tab ID to send message to
+   * @param message - Message object to send to content script
+   * @returns Promise resolving to the response from content script
+   */
   static async sendToContent(tabId: number, message: any): Promise<any> {
     return await ErrorHandler.safeExecute(
       async () => chrome.tabs.sendMessage(tabId, message),
@@ -32,6 +49,12 @@ export class ContentMessenger {
     )
   }
 
+  /**
+   * Retrieves products that need to be submitted to the FODMAP API.
+   * Delegates to content script to query the database for unsubmitted products.
+   *
+   * @returns Promise resolving to array of unsubmitted products
+   */
   static async getUnsubmittedProducts(): Promise<Product[]> {
     return await PerformanceMonitor.measureAsync(
       'getUnsubmittedProducts',
@@ -64,6 +87,13 @@ export class ContentMessenger {
     )
   }
 
+  /**
+   * Retrieves products that have been submitted to API but not yet processed.
+   * Used by polling operations to check for completed classifications.
+   * Delegates to content script to query the database.
+   *
+   * @returns Promise resolving to array of submitted but unprocessed products
+   */
   static async getSubmittedUnprocessedProducts(): Promise<Product[]> {
     return await PerformanceMonitor.measureAsync(
       'getSubmittedUnprocessedProducts',
@@ -96,6 +126,14 @@ export class ContentMessenger {
     )
   }
 
+  /**
+   * Retrieves specific products by their external IDs.
+   * Used when sync operations need to get full product data for specific items.
+   * Delegates to content script to query the database.
+   *
+   * @param externalIds - Array of Glovo product IDs to retrieve
+   * @returns Promise resolving to array of matching products
+   */
   static async getProductsByExternalIds(
     externalIds: string[],
   ): Promise<Product[]> {
@@ -132,6 +170,13 @@ export class ContentMessenger {
     )
   }
 
+  /**
+   * Updates product statuses and timestamps in the database.
+   * Used to save API responses and sync results back to the database.
+   * Delegates to content script to perform the database updates.
+   *
+   * @param results - Array of products with updated status information
+   */
   static async updateProductStatuses(results: Product[]): Promise<void> {
     return await PerformanceMonitor.measureAsync(
       'updateProductStatuses',
@@ -163,6 +208,15 @@ export class ContentMessenger {
     )
   }
 
+  /**
+   * Sends log messages to content script for unified logging.
+   * Allows background script logs to be forwarded to content script logger.
+   * Used to consolidate logging output from both contexts.
+   *
+   * @param level - Log level (log, warn, error)
+   * @param message - Main log message
+   * @param optionalParams - Additional parameters to log
+   */
   static sendLogMessage(
     level: 'log' | 'warn' | 'error',
     message: unknown,

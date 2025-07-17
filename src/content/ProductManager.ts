@@ -109,16 +109,6 @@ export class ProductManager {
     })
   }
 
-  static async getPendingProducts(): Promise<Product[]> {
-    return (
-      (await ErrorHandler.safeExecute(
-        async () => db.products.where('status').equals('PENDING').toArray(),
-        'Content',
-        [],
-      )) || []
-    )
-  }
-
   static async getUnsubmittedProducts(): Promise<Product[]> {
     return (
       (await ErrorHandler.safeExecute(

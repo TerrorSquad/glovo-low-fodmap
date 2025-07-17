@@ -6,7 +6,7 @@ import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import { ContentMessenger } from './ContentMessenger'
 import { FodmapApiClient } from './FodmapApiClient'
 
-type SyncType = 'manual' | 'periodic' | 'unknown'
+type SyncType = 'manual' | 'periodic'
 
 /**
  * Orchestrates background sync operations using submit-and-poll pattern
@@ -39,7 +39,7 @@ export class SyncOrchestrator {
 
       ErrorHandler.logInfo('Background', 'Starting periodic sync and polling')
 
-      // Start submit sync (for new unknown/pending products)
+      // Start submit sync (for unsubmitted products)
       this.syncInterval = setInterval(() => {
         this.performSubmitSync('periodic').catch((error: unknown) => {
           ErrorHandler.logError('Background', error, {
@@ -76,7 +76,7 @@ export class SyncOrchestrator {
     }, 'SyncOrchestrator.stopPeriodicSync')
   }
 
-  async syncPendingProducts(): Promise<void> {
+  async syncWithApi(): Promise<void> {
     return await this.performSubmitSync('manual')
   }
 
@@ -206,7 +206,7 @@ export class SyncOrchestrator {
 
           const tab = await ContentMessenger.findActiveGlovoTab()
           if (!tab?.id) {
-            if (syncType === 'manual' || syncType === 'unknown') {
+            if (syncType === 'manual') {
               ErrorHandler.logInfo(
                 'Background',
                 `No active Glovo tab found for ${syncType} sync`,
@@ -215,7 +215,7 @@ export class SyncOrchestrator {
             return
           }
 
-          // Get unsubmitted products (both unknown and pending)
+          // Get unsubmitted products
           const productsToSubmit =
             await ContentMessenger.getUnsubmittedProducts()
 

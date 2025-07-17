@@ -32,38 +32,6 @@ export class ContentMessenger {
     )
   }
 
-  static async getPendingProducts(): Promise<Product[]> {
-    return await PerformanceMonitor.measureAsync(
-      'getPendingProducts',
-      async () => {
-        const tab = await ContentMessenger.findActiveGlovoTab()
-        if (!tab?.id) {
-          ErrorHandler.logInfo(
-            'Background',
-            'No active Glovo tab found for pending products',
-          )
-          return []
-        }
-
-        try {
-          const products = await ContentMessenger.sendToContent(tab.id, {
-            action: 'getPendingProducts',
-          })
-          ErrorHandler.logInfo(
-            'Background',
-            `Retrieved ${products?.length || 0} pending products`,
-          )
-          return products || []
-        } catch (error) {
-          ErrorHandler.logError('Background', error, {
-            context: 'Getting pending products',
-          })
-          return []
-        }
-      },
-    )
-  }
-
   static async getUnsubmittedProducts(): Promise<Product[]> {
     return await PerformanceMonitor.measureAsync(
       'getUnsubmittedProducts',

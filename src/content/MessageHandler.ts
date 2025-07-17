@@ -32,10 +32,6 @@ export class MessageHandler {
             this.handleLogMessage(message.payload)
             break
 
-          case 'getPendingProducts':
-            this.handleGetPendingProducts(sendResponse)
-            return true
-
           case 'getUnsubmittedProducts':
             this.handleGetUnsubmittedProducts(sendResponse)
             return true
@@ -85,29 +81,6 @@ export class MessageHandler {
         context: 'Log message handling',
       })
     }
-  }
-
-  private async handleGetPendingProducts(
-    sendResponse: (response?: any) => void,
-  ): Promise<void> {
-    return await PerformanceMonitor.measureAsync(
-      'handleGetPendingProducts',
-      async () => {
-        try {
-          const products = await ProductManager.getPendingProducts()
-          sendResponse(products)
-          ErrorHandler.logInfo(
-            'Content',
-            `Sent ${products.length} pending products to background`,
-          )
-        } catch (error) {
-          ErrorHandler.logError('Content', error, {
-            context: 'Getting pending products',
-          })
-          sendResponse([])
-        }
-      },
-    )
   }
 
   private async handleGetUnsubmittedProducts(

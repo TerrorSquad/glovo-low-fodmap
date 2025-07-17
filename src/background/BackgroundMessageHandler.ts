@@ -76,7 +76,7 @@ export class BackgroundMessageHandler {
 
   private handleManualSync(): void {
     ErrorHandler.logInfo('Background', 'Received manual sync request')
-    this.syncOrchestrator.syncPendingProducts()
+    this.syncOrchestrator.syncWithApi()
   }
 
   private handleNewProducts(message: BackgroundMessage): void {

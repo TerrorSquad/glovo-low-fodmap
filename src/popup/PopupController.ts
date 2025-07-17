@@ -9,9 +9,7 @@ export class PopupController {
   private toggleSwitch: HTMLInputElement
   private darkModeToggle: HTMLInputElement
   private syncButton: HTMLButtonElement
-  private syncUnknownButton: HTMLButtonElement
   private pollStatusButton: HTMLButtonElement
-  private statusElement: HTMLElement
   private statusIcon: HTMLElement
   private statusText: HTMLElement
   private totalProductsElement: HTMLElement
@@ -32,15 +30,11 @@ export class PopupController {
       'darkModeToggle',
     ) as HTMLInputElement
     this.syncButton = document.getElementById('syncButton') as HTMLButtonElement
-    this.syncUnknownButton = document.getElementById(
-      'syncUnknownButton',
-    ) as HTMLButtonElement
     this.pollStatusButton = document.getElementById(
       'pollStatusButton',
     ) as HTMLButtonElement
 
     // Status elements
-    this.statusElement = document.getElementById('status') as HTMLElement
     this.statusIcon = document.getElementById('statusIcon') as HTMLElement
     this.statusText = document.getElementById('statusText') as HTMLElement
 
@@ -70,7 +64,6 @@ export class PopupController {
       !this.toggleSwitch ||
       !this.darkModeToggle ||
       !this.syncButton ||
-      !this.syncUnknownButton ||
       !this.pollStatusButton
     ) {
       throw new Error('Required DOM elements not found')
@@ -98,16 +91,9 @@ export class PopupController {
         chrome.storage.sync.get(
           { hideNonLowFodmap: false, darkMode: false },
           (data) => {
-            this.toggleSwitch.checked = !!data.hideNonLowFodmap
-            this.darkModeToggle.checked = !!data.darkMode
-
-            // Apply dark mode class to document body
-            this.applyDarkMode(!!data.darkMode)
-
-            ErrorHandler.logInfo(
-              'Popup',
-              `Loaded settings: hideNonLowFodmap = ${data.hideNonLowFodmap}, darkMode = ${data.darkMode}`,
-            )
+            this.toggleSwitch.checked = data.hideNonLowFodmap
+            this.darkModeToggle.checked = data.darkMode
+            this.applyDarkMode(data.darkMode)
             resolve()
           },
         )
@@ -116,60 +102,34 @@ export class PopupController {
   }
 
   private async loadStatistics(): Promise<void> {
-    try {
-      // Send message to content script to get product counts from IndexedDB
-      const tabs = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      })
-      if (tabs[0]?.id) {
-        chrome.tabs.sendMessage(
-          tabs[0].id,
-          { action: 'getProductStatistics' },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              // Content script might not be loaded
-              this.totalProductsElement.textContent = '0'
-              this.lowFodmapCountElement.textContent = '0'
-              return
-            }
+    return await PerformanceMonitor.measureAsync('loadStatistics', async () => {
+      try {
+        const response = await chrome.runtime.sendMessage({
+          action: 'getProductStatistics',
+        })
 
-            if (response && typeof response === 'object') {
-              this.totalProductsElement.textContent =
-                response.total?.toString() || '0'
-              this.lowFodmapCountElement.textContent =
-                response.lowFodmap?.toString() || '0'
-
-              ErrorHandler.logInfo(
-                'Popup',
-                `Loaded statistics: ${response.total} total, ${response.lowFodmap} low FODMAP`,
-              )
-            } else {
-              this.totalProductsElement.textContent = '0'
-              this.lowFodmapCountElement.textContent = '0'
-            }
-          },
-        )
-      } else {
-        // No active tab
-        this.totalProductsElement.textContent = '0'
-        this.lowFodmapCountElement.textContent = '0'
+        if (response) {
+          this.totalProductsElement.textContent = response.total.toString()
+          this.lowFodmapCountElement.textContent = response.lowFodmap.toString()
+          ErrorHandler.logInfo(
+            'Popup',
+            `Statistics loaded: ${response.total} total, ${response.lowFodmap} low FODMAP`,
+          )
+        }
+      } catch (error) {
+        this.totalProductsElement.textContent = 'Error'
+        this.lowFodmapCountElement.textContent = 'Error'
+        ErrorHandler.logError('Popup', error, {
+          context: 'Loading statistics',
+        })
       }
-    } catch (error) {
-      ErrorHandler.logError('Popup', error, { context: 'Loading statistics' })
-      this.totalProductsElement.textContent = '?'
-      this.lowFodmapCountElement.textContent = '?'
-    }
+    })
   }
 
   private setupEventListeners(): void {
     this.toggleSwitch.addEventListener('change', this.handleToggleChange)
     this.darkModeToggle.addEventListener('change', this.handleDarkModeToggle)
     this.syncButton.addEventListener('click', this.handleSyncClick)
-    this.syncUnknownButton.addEventListener(
-      'click',
-      this.handleSyncUnknownClick,
-    )
     this.pollStatusButton.addEventListener('click', this.handlePollStatusClick)
 
     // Debug event listeners
@@ -184,19 +144,19 @@ export class PopupController {
 
   private handleToggleChange = (): void => {
     try {
-      const shouldHide = this.toggleSwitch.checked
+      const hideNonLowFodmap = this.toggleSwitch.checked
 
       // Save setting to storage
-      chrome.storage.sync.set({ hideNonLowFodmap: shouldHide })
+      chrome.storage.sync.set({ hideNonLowFodmap })
       ErrorHandler.logInfo(
         'Popup',
-        `Toggle changed: hideNonLowFodmap = ${shouldHide}`,
+        `Toggle changed: hideNonLowFodmap = ${hideNonLowFodmap}`,
       )
 
-      // Notify content script
+      // Send message to content script to update styles
       this.sendMessageToActiveTab({
-        action: 're-evaluate',
-        hide: shouldHide,
+        action: 'refreshStyles',
+        hideNonLowFodmap,
       })
     } catch (error) {
       ErrorHandler.logError('Popup', error, {
@@ -238,16 +198,16 @@ export class PopupController {
 
   private handleSyncClick = async (): Promise<void> => {
     try {
-      this.updateStatus('Syncing...', 'warning')
+      this.updateStatus('Syncing unsubmitted products...', 'warning')
       this.syncButton.disabled = true
 
-      ErrorHandler.logInfo('Popup', 'Sync button clicked')
+      ErrorHandler.logInfo('Popup', 'Sync products button clicked')
       chrome.runtime.sendMessage({ action: 'syncWithApi' })
 
       // Wait a moment then refresh statistics
       setTimeout(async () => {
         await this.loadStatistics()
-        this.updateStatus('Sync completed', 'healthy')
+        this.updateStatus('Products sync completed', 'healthy')
         this.syncButton.disabled = false
 
         // Reset status after 3 seconds
@@ -259,34 +219,6 @@ export class PopupController {
       ErrorHandler.logError('Popup', error, { context: 'Sync button click' })
       this.updateStatus('Sync failed', 'error')
       this.syncButton.disabled = false
-    }
-  }
-
-  private handleSyncUnknownClick = async (): Promise<void> => {
-    try {
-      this.updateStatus('Syncing unknown products...', 'warning')
-      this.syncUnknownButton.disabled = true
-
-      ErrorHandler.logInfo('Popup', 'Sync unknown products button clicked')
-      chrome.runtime.sendMessage({ action: 'syncUnknownProducts' })
-
-      // Wait a moment then refresh statistics
-      setTimeout(async () => {
-        await this.loadStatistics()
-        this.updateStatus('Unknown products sync completed', 'healthy')
-        this.syncUnknownButton.disabled = false
-
-        // Reset status after 3 seconds
-        setTimeout(() => {
-          this.updateStatus('Ready', 'healthy')
-        }, 3000)
-      }, 2000)
-    } catch (error) {
-      ErrorHandler.logError('Popup', error, {
-        context: 'Sync unknown products button click',
-      })
-      this.updateStatus('Unknown products sync failed', 'error')
-      this.syncUnknownButton.disabled = false
     }
   }
 
@@ -407,12 +339,6 @@ export class PopupController {
     if ((event.ctrlKey || event.metaKey) && event.key === 's') {
       event.preventDefault()
       this.handleSyncClick()
-    }
-
-    // Ctrl/Cmd + U: Sync unknown products
-    if ((event.ctrlKey || event.metaKey) && event.key === 'u') {
-      event.preventDefault()
-      this.handleSyncUnknownClick()
     }
 
     // Ctrl/Cmd + P: Poll status

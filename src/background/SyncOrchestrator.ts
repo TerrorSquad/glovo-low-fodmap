@@ -80,10 +80,6 @@ export class SyncOrchestrator {
     return await this.performSubmitSync('manual')
   }
 
-  async syncUnknownProducts(): Promise<void> {
-    return await this.performSubmitSync('unknown')
-  }
-
   async syncSpecificProducts(externalIds: string[]): Promise<void> {
     return await this.performSpecificProductsSync(externalIds)
   }
@@ -122,10 +118,12 @@ export class SyncOrchestrator {
           const allProducts =
             await ContentMessenger.getProductsByExternalIds(externalIds)
 
-          // Filter to only unsubmitted products
+          // Filter to only unsubmitted products (no submittedAt AND status is UNKNOWN/PENDING)
           const productsToSubmit = allProducts.filter(
             (product) =>
-              product.submittedAt === null || product.submittedAt === undefined,
+              (product.submittedAt === null ||
+                product.submittedAt === undefined) &&
+              (product.status === 'UNKNOWN' || product.status === 'PENDING'),
           )
 
           if (!productsToSubmit.length) {
@@ -217,19 +215,9 @@ export class SyncOrchestrator {
             return
           }
 
-          // Get products to submit based on sync type
-          let productsToSubmit: Product[]
-          if (syncType === 'unknown') {
-            // For unknown sync, get unsubmitted products that are unknown
-            const unsubmittedProducts =
-              await ContentMessenger.getUnsubmittedProducts()
-            productsToSubmit = unsubmittedProducts.filter(
-              (p) => p.status === 'UNKNOWN',
-            )
-          } else {
-            // For pending sync, get unsubmitted products (both unknown and pending)
-            productsToSubmit = await ContentMessenger.getUnsubmittedProducts()
-          }
+          // Get unsubmitted products (both unknown and pending)
+          const productsToSubmit =
+            await ContentMessenger.getUnsubmittedProducts()
 
           if (!productsToSubmit.length) {
             ErrorHandler.logInfo(

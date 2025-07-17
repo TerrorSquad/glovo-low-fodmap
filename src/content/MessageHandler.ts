@@ -92,7 +92,10 @@ export class MessageHandler {
             return true
 
           case 'refreshStyles':
-            this.fodmapHelper.updatePageStyles()
+            // Handle async operation for setting preference and refreshing styles
+            this.handleRefreshStyles(message).catch((error: unknown) => {
+              console.error('Error handling refreshStyles:', error)
+            })
             break
 
           case 're-evaluate':
@@ -325,6 +328,31 @@ export class MessageHandler {
         }
       },
     )
+  }
+
+  /**
+   * Handles style refresh requests with optional hide preference updates
+   * Updates both runtime state and persistent storage when hide preference is provided
+   *
+   * @param message - Chrome message containing optional hideNonLowFodmap preference
+   *
+   * Process:
+   * 1. Updates FodmapHelper runtime preference if provided
+   * 2. Persists setting to browser storage if provided
+   * 3. Triggers immediate page style refresh to apply changes
+   *
+   * Used when popup changes the hide preference or requests a general style refresh.
+   */
+  private async handleRefreshStyles(message: ChromeMessage): Promise<void> {
+    // Update hide preference if provided
+    if (typeof message.hideNonLowFodmap === 'boolean') {
+      this.fodmapHelper.setHideNonLowFodmap(message.hideNonLowFodmap)
+      // Save the setting to storage for persistence
+      await StorageManager.setHideNonLowFodmap(message.hideNonLowFodmap)
+    }
+
+    // Force update all cards to ensure visibility changes take effect
+    await this.fodmapHelper.updatePageStyles()
   }
 
   /**

@@ -14,6 +14,7 @@ export interface ChromeMessage {
   payload?: any
   data?: any
   hide?: boolean
+  hideNonLowFodmap?: boolean
 }
 
 export interface LogPayload {

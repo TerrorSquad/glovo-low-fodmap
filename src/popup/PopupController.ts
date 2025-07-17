@@ -104,17 +104,32 @@ export class PopupController {
   private async loadStatistics(): Promise<void> {
     return await PerformanceMonitor.measureAsync('loadStatistics', async () => {
       try {
-        const response = await chrome.runtime.sendMessage({
-          action: 'getProductStatistics',
+        const response = await new Promise<any>((resolve) => {
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]?.id) {
+              chrome.tabs.sendMessage(
+                tabs[0].id,
+                { action: 'getProductStatistics' },
+                resolve,
+              )
+            } else {
+              resolve(null)
+            }
+          })
         })
 
-        if (response) {
-          this.totalProductsElement.textContent = response.total.toString()
-          this.lowFodmapCountElement.textContent = response.lowFodmap.toString()
+        if (response && typeof response === 'object') {
+          this.totalProductsElement.textContent =
+            response.total?.toString() || '0'
+          this.lowFodmapCountElement.textContent =
+            response.lowFodmap?.toString() || '0'
           ErrorHandler.logInfo(
             'Popup',
-            `Statistics loaded: ${response.total} total, ${response.lowFodmap} low FODMAP`,
+            `Statistics loaded: ${response.total || 0} total, ${response.lowFodmap || 0} low FODMAP`,
           )
+        } else {
+          this.totalProductsElement.textContent = 'No tab'
+          this.lowFodmapCountElement.textContent = 'No tab'
         }
       } catch (error) {
         this.totalProductsElement.textContent = 'Error'

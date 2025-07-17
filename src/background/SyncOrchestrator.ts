@@ -119,21 +119,37 @@ export class SyncOrchestrator {
           }
 
           // Get specific products by their external IDs
-          const productsToSubmit =
+          const allProducts =
             await ContentMessenger.getProductsByExternalIds(externalIds)
+
+          // Filter to only unsubmitted products
+          const productsToSubmit = allProducts.filter(
+            (product) =>
+              product.submittedAt === null || product.submittedAt === undefined,
+          )
 
           if (!productsToSubmit.length) {
             ErrorHandler.logInfo(
               'Background',
-              `No products found for specific sync with IDs: ${externalIds.join(', ')}`,
+              `No unsubmitted products found for specific sync with IDs: ${externalIds.join(', ')}`,
             )
             return
           }
 
           ErrorHandler.logInfo(
             'Background',
-            `Starting specific products sync for ${productsToSubmit.length} products`,
+            `Starting specific products sync for ${productsToSubmit.length} unsubmitted products`,
           )
+
+          // Set submittedAt timestamp before submitting to API
+          const currentTime = new Date()
+          const productsWithSubmittedAt = productsToSubmit.map((product) => ({
+            ...product,
+            submittedAt: currentTime,
+          }))
+
+          // Update products with submittedAt timestamp
+          await ContentMessenger.updateProductStatuses(productsWithSubmittedAt)
 
           const startTime = performance.now()
           this.isSyncing = true
@@ -204,9 +220,15 @@ export class SyncOrchestrator {
           // Get products to submit based on sync type
           let productsToSubmit: Product[]
           if (syncType === 'unknown') {
-            productsToSubmit = await ContentMessenger.getUnknownProducts()
+            // For unknown sync, get unsubmitted products that are unknown
+            const unsubmittedProducts =
+              await ContentMessenger.getUnsubmittedProducts()
+            productsToSubmit = unsubmittedProducts.filter(
+              (p) => p.status === 'UNKNOWN',
+            )
           } else {
-            productsToSubmit = await ContentMessenger.getPendingProducts()
+            // For pending sync, get unsubmitted products (both unknown and pending)
+            productsToSubmit = await ContentMessenger.getUnsubmittedProducts()
           }
 
           if (!productsToSubmit.length) {
@@ -221,6 +243,16 @@ export class SyncOrchestrator {
             'Background',
             `Starting ${syncType} submit sync for ${productsToSubmit.length} products`,
           )
+
+          // Set submittedAt timestamp before submitting to API
+          const currentTime = new Date()
+          const productsWithSubmittedAt = productsToSubmit.map((product) => ({
+            ...product,
+            submittedAt: currentTime,
+          }))
+
+          // Update products with submittedAt timestamp
+          await ContentMessenger.updateProductStatuses(productsWithSubmittedAt)
 
           // Submit products to API
           const submitResult =
@@ -322,6 +354,9 @@ export class SyncOrchestrator {
                 return {
                   ...originalProduct,
                   status: apiProduct.status, // Status is already in correct format (LOW/HIGH/UNKNOWN/PENDING)
+                  processedAt: apiProduct.processedAt
+                    ? new Date(apiProduct.processedAt)
+                    : new Date(),
                 } as Product
               })
               .filter((product): product is Product => product !== null)
@@ -380,6 +415,9 @@ export class SyncOrchestrator {
             return {
               ...originalProduct,
               status: apiProduct.status,
+              processedAt: apiProduct.processedAt
+                ? new Date(apiProduct.processedAt)
+                : new Date(),
             } as Product
           })
           .filter((product): product is Product => product !== null)

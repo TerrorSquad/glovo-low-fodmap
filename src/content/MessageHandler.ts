@@ -40,6 +40,10 @@ export class MessageHandler {
             this.handleGetUnknownProducts(sendResponse)
             return true
 
+          case 'getUnsubmittedProducts':
+            this.handleGetUnsubmittedProducts(sendResponse)
+            return true
+
           case 'getProductsByExternalIds':
             this.handleGetProductsByExternalIds(message.data, sendResponse)
             return true
@@ -126,6 +130,29 @@ export class MessageHandler {
         } catch (error) {
           ErrorHandler.logError('Content', error, {
             context: 'Getting unknown products',
+          })
+          sendResponse([])
+        }
+      },
+    )
+  }
+
+  private async handleGetUnsubmittedProducts(
+    sendResponse: (response?: any) => void,
+  ): Promise<void> {
+    return await PerformanceMonitor.measureAsync(
+      'handleGetUnsubmittedProducts',
+      async () => {
+        try {
+          const products = await ProductManager.getUnsubmittedProducts()
+          sendResponse(products)
+          ErrorHandler.logInfo(
+            'Content',
+            `Sent ${products.length} unsubmitted products to background`,
+          )
+        } catch (error) {
+          ErrorHandler.logError('Content', error, {
+            context: 'Getting unsubmitted products',
           })
           sendResponse([])
         }

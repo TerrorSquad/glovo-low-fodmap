@@ -77,6 +77,17 @@ export class ProductManager {
             const localProduct = localProductMap.get(apiProduct.externalId)
             if (localProduct) {
               localProduct.status = apiProduct.status
+
+              // Update submittedAt if provided
+              if (apiProduct.submittedAt !== undefined) {
+                localProduct.submittedAt = apiProduct.submittedAt
+              }
+
+              // Update processedAt if provided
+              if (apiProduct.processedAt !== undefined) {
+                localProduct.processedAt = apiProduct.processedAt
+              }
+
               finalUpdates.push(localProduct)
             }
           }
@@ -112,6 +123,25 @@ export class ProductManager {
     return (
       (await ErrorHandler.safeExecute(
         async () => db.products.where('status').equals('UNKNOWN').toArray(),
+        'Content',
+        [],
+      )) || []
+    )
+  }
+
+  static async getUnsubmittedProducts(): Promise<Product[]> {
+    return (
+      (await ErrorHandler.safeExecute(
+        async () =>
+          db.products
+            .where('status')
+            .anyOf(['UNKNOWN', 'PENDING'])
+            .and(
+              (product) =>
+                product.submittedAt === null ||
+                product.submittedAt === undefined,
+            )
+            .toArray(),
         'Content',
         [],
       )) || []

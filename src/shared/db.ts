@@ -8,6 +8,8 @@ export interface Product {
   price?: number
   status: FodmapStatus
   category: string
+  submittedAt?: Date | null // Timestamp when product was submitted to API (client-side)
+  processedAt?: Date | null // Timestamp when backend finished processing (server-side)
 }
 
 export class FodmapDatabase extends Dexie {
@@ -15,8 +17,8 @@ export class FodmapDatabase extends Dexie {
 
   constructor() {
     super('fodmapDatabase')
-    this.version(7).stores({
-      products: '++id, &externalId, name, status',
+    this.version(8).stores({
+      products: '++id, &externalId, name, status, submittedAt, processedAt',
     })
   }
 }

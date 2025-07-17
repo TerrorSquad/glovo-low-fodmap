@@ -25,6 +25,7 @@ type StatusResponse = {
     status: 'LOW' | 'HIGH' | 'UNKNOWN' | 'PENDING'
     createdAt: string
     updatedAt: string
+    processedAt?: string
   }>
   found: number
   missing: number

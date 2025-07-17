@@ -96,6 +96,38 @@ export class ContentMessenger {
     )
   }
 
+  static async getUnsubmittedProducts(): Promise<Product[]> {
+    return await PerformanceMonitor.measureAsync(
+      'getUnsubmittedProducts',
+      async () => {
+        const tab = await ContentMessenger.findActiveGlovoTab()
+        if (!tab?.id) {
+          ErrorHandler.logInfo(
+            'Background',
+            'No active Glovo tab found for unsubmitted products',
+          )
+          return []
+        }
+
+        try {
+          const products = await ContentMessenger.sendToContent(tab.id, {
+            action: 'getUnsubmittedProducts',
+          })
+          ErrorHandler.logInfo(
+            'Background',
+            `Retrieved ${products?.length || 0} unsubmitted products`,
+          )
+          return products || []
+        } catch (error) {
+          ErrorHandler.logError('Background', error, {
+            context: 'Getting unsubmitted products',
+          })
+          return []
+        }
+      },
+    )
+  }
+
   static async getProductsByExternalIds(
     externalIds: string[],
   ): Promise<Product[]> {

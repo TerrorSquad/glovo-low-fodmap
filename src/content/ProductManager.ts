@@ -119,16 +119,6 @@ export class ProductManager {
     )
   }
 
-  static async getUnknownProducts(): Promise<Product[]> {
-    return (
-      (await ErrorHandler.safeExecute(
-        async () => db.products.where('status').equals('UNKNOWN').toArray(),
-        'Content',
-        [],
-      )) || []
-    )
-  }
-
   static async getUnsubmittedProducts(): Promise<Product[]> {
     return (
       (await ErrorHandler.safeExecute(

@@ -315,11 +315,10 @@ export class SyncOrchestrator {
             return
           }
 
-          // Get products with pending status
-          const pendingProducts = await ContentMessenger.getPendingProducts()
-          const unknownProducts = await ContentMessenger.getUnknownProducts()
-          const allProducts = [...pendingProducts, ...unknownProducts]
-          const externalIds = allProducts.map((p) => p.externalId)
+          // Get products that need submission
+          const unsubmittedProducts =
+            await ContentMessenger.getUnsubmittedProducts()
+          const externalIds = unsubmittedProducts.map((p) => p.externalId)
 
           if (!externalIds.length) {
             return
@@ -334,7 +333,7 @@ export class SyncOrchestrator {
             const updatedProducts = statusResult.results
               .filter((apiProduct) => apiProduct.status !== 'PENDING') // Only update completed classifications
               .map((apiProduct) => {
-                const originalProduct = allProducts.find(
+                const originalProduct = unsubmittedProducts.find(
                   (p) => p.externalId === apiProduct.externalId,
                 )
                 if (!originalProduct) return null
@@ -389,13 +388,14 @@ export class SyncOrchestrator {
       const statusResult = await this.apiClient.pollProductStatus(productIds)
 
       if (statusResult.results.length > 0) {
-        // Get pending products to have full Product objects
-        const pendingProducts = await ContentMessenger.getPendingProducts()
+        // Get unsubmitted products to have full Product objects
+        const unsubmittedProducts =
+          await ContentMessenger.getUnsubmittedProducts()
 
         const updatedProducts = statusResult.results
           .filter((apiProduct) => apiProduct.status !== 'PENDING') // Only update completed classifications
           .map((apiProduct) => {
-            const originalProduct = pendingProducts.find(
+            const originalProduct = unsubmittedProducts.find(
               (p: Product) => p.externalId === apiProduct.externalId,
             )
             if (!originalProduct) return null

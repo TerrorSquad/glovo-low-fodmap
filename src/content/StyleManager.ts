@@ -2,17 +2,24 @@ import { type FodmapStatus } from '../shared/db'
 import { ErrorHandler } from '../shared/ErrorHandler'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 
+/**
+ * Configuration object for badge appearance and accessibility properties
+ */
 type BadgeConfig = {
-  title: string
-  icon: string
-  className: string
-  ariaLabel: string
+  title: string // Tooltip text shown on hover
+  icon: string // Visual character displayed in the badge
+  className: string // CSS classes for styling
+  ariaLabel: string // Screen reader description
 }
 
 /**
  * Handles styling for FODMAP indicators using Tailwind CSS classes
  */
 export class StyleManager {
+  /**
+   * CSS class names used for styling product cards and badges.
+   * These correspond to styles defined in the extension's CSS file.
+   */
   private static readonly CSS_CLASSES = {
     LOW_HIGHLIGHT: 'fodmap-low-highlight',
     HIGH_DIMMED: 'fodmap-high-dimmed',
@@ -25,6 +32,11 @@ export class StyleManager {
     BADGE_PENDING: 'fodmap-badge-pending',
   } as const
 
+  /**
+   * Configuration for each FODMAP status defining the badge appearance and accessibility.
+   * Each status has specific visual indicators and user-friendly descriptions.
+   * null values mean no badge should be shown for that status.
+   */
   private static readonly STATUS_CONFIG: Record<
     FodmapStatus,
     BadgeConfig | null
@@ -55,6 +67,14 @@ export class StyleManager {
     },
   }
 
+  /**
+   * Applies FODMAP styling and visibility to a product card element.
+   * This is the main public method that coordinates all styling operations.
+   *
+   * @param card - The HTML element representing the product card
+   * @param status - The FODMAP status (LOW, HIGH, UNKNOWN, PENDING)
+   * @param shouldHide - Whether the card should be hidden from view
+   */
   static applyToCard(
     card: HTMLElement,
     status: FodmapStatus,
@@ -101,6 +121,12 @@ export class StyleManager {
     )
   }
 
+  /**
+   * Removes all previously applied FODMAP styling from a card element.
+   * This includes CSS classes, badges, and resets the card to its original state.
+   *
+   * @param card - The HTML element to reset
+   */
   private static resetCard(card: HTMLElement): void {
     // Remove all FODMAP-related classes
     card.classList.remove(
@@ -114,6 +140,14 @@ export class StyleManager {
     // Don't force position: relative as it might interfere with Glovo's layout
   }
 
+  /**
+   * Applies visual styling and badge based on the FODMAP status.
+   * Each status gets distinctive styling: LOW gets highlighted, HIGH gets dimmed,
+   * UNKNOWN gets subtle styling, and PENDING shows processing state.
+   *
+   * @param card - The HTML element to style
+   * @param status - The FODMAP status that determines the styling
+   */
   private static applyStatus(card: HTMLElement, status: FodmapStatus): void {
     const config = StyleManager.STATUS_CONFIG[status]
 
@@ -145,6 +179,13 @@ export class StyleManager {
     }
   }
 
+  /**
+   * Controls the visibility of a product card by adding or removing the hidden class.
+   * This is used to hide high-FODMAP products when the user enables filtering.
+   *
+   * @param card - The HTML element to show or hide
+   * @param shouldHide - True to hide the card, false to show it
+   */
   private static applyVisibility(card: HTMLElement, shouldHide: boolean): void {
     if (shouldHide) {
       card.classList.add(StyleManager.CSS_CLASSES.CARD_HIDDEN)
@@ -153,6 +194,17 @@ export class StyleManager {
     }
   }
 
+  /**
+   * Creates and adds a visual badge to a product card showing its FODMAP status.
+   * The badge includes an icon, tooltip, and accessibility attributes.
+   * Positioned absolutely in the top-right corner of the card.
+   *
+   * @param card - The parent HTML element to attach the badge to
+   * @param title - Tooltip text shown on hover
+   * @param icon - Visual icon character (✓, ✗, ?, ⋯) displayed in the badge
+   * @param className - CSS classes for styling the badge appearance
+   * @param ariaLabel - Screen reader description for accessibility
+   */
   private static addBadge(
     card: HTMLElement,
     title: string,

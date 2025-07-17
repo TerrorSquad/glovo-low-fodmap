@@ -96,6 +96,42 @@ export class ContentMessenger {
     )
   }
 
+  static async getProductsByExternalIds(
+    externalIds: string[],
+  ): Promise<Product[]> {
+    return await PerformanceMonitor.measureAsync(
+      'getProductsByExternalIds',
+      async () => {
+        const tab = await ContentMessenger.findActiveGlovoTab()
+        if (!tab?.id) {
+          ErrorHandler.logInfo(
+            'Background',
+            'No active Glovo tab found for specific products',
+          )
+          return []
+        }
+
+        try {
+          const products = await ContentMessenger.sendToContent(tab.id, {
+            action: 'getProductsByExternalIds',
+            data: { externalIds },
+          })
+          ErrorHandler.logInfo(
+            'Background',
+            `Retrieved ${products?.length || 0} products by external IDs`,
+          )
+          return products || []
+        } catch (error) {
+          ErrorHandler.logError('Background', error, {
+            context: 'Getting products by external IDs',
+            metadata: { externalIds },
+          })
+          return []
+        }
+      },
+    )
+  }
+
   static async updateProductStatuses(results: Product[]): Promise<void> {
     return await PerformanceMonitor.measureAsync(
       'updateProductStatuses',

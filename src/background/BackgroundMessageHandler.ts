@@ -11,6 +11,9 @@ export type BackgroundMessageAction =
 
 export interface BackgroundMessage {
   action: BackgroundMessageAction
+  data?: {
+    newProductIds?: string[]
+  }
 }
 
 export interface BackgroundMessageResponse {
@@ -44,7 +47,7 @@ export class BackgroundMessageHandler {
               return { success: true }
 
             case 'newProductsFound':
-              this.handleNewProducts()
+              this.handleNewProducts(message)
               return { success: true }
 
             case 'getSyncStatus':
@@ -81,12 +84,21 @@ export class BackgroundMessageHandler {
     this.syncOrchestrator.syncPendingProducts()
   }
 
-  private handleNewProducts(): void {
+  private handleNewProducts(message: BackgroundMessage): void {
+    const newProductIds = message.data?.newProductIds
+    if (!newProductIds || newProductIds.length === 0) {
+      ErrorHandler.logWarning(
+        'Background',
+        'Received newProductsFound message without product IDs',
+      )
+      return
+    }
+
     ErrorHandler.logInfo(
       'Background',
-      'Received new products list for classification',
+      `Received ${newProductIds.length} new products, syncing specific products`,
     )
-    this.syncOrchestrator.syncPendingProducts()
+    this.syncOrchestrator.syncSpecificProducts(newProductIds)
   }
 
   private handleUnknownProductsSync(): void {

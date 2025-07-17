@@ -84,8 +84,86 @@ export class SyncOrchestrator {
     return await this.performSubmitSync('unknown')
   }
 
+  async syncSpecificProducts(externalIds: string[]): Promise<void> {
+    return await this.performSpecificProductsSync(externalIds)
+  }
+
   async forcePollStatus(): Promise<void> {
     return await this.performStatusPoll()
+  }
+
+  private async performSpecificProductsSync(
+    externalIds: string[],
+  ): Promise<void> {
+    await PerformanceMonitor.measureAsync(
+      'performSpecificProductsSync',
+      async () => {
+        await ErrorBoundary.protect(async () => {
+          if (this.isSyncing) {
+            ErrorHandler.logInfo(
+              'Background',
+              'Submit sync already in progress, skipping specific products sync',
+            )
+            return
+          }
+
+          this.isSyncing = true
+
+          const tab = await ContentMessenger.findActiveGlovoTab()
+          if (!tab?.id) {
+            ErrorHandler.logInfo(
+              'Background',
+              'No active Glovo tab found for specific products sync',
+            )
+            return
+          }
+
+          // Get specific products by their external IDs
+          const productsToSubmit =
+            await ContentMessenger.getProductsByExternalIds(externalIds)
+
+          if (!productsToSubmit.length) {
+            ErrorHandler.logInfo(
+              'Background',
+              `No products found for specific sync with IDs: ${externalIds.join(', ')}`,
+            )
+            return
+          }
+
+          ErrorHandler.logInfo(
+            'Background',
+            `Starting specific products sync for ${productsToSubmit.length} products`,
+          )
+
+          const startTime = performance.now()
+          this.isSyncing = true
+
+          try {
+            const submitResult =
+              await this.apiClient.submitProducts(productsToSubmit)
+            const syncDuration = Math.round(performance.now() - startTime)
+
+            ErrorHandler.logInfo(
+              'Background',
+              `Specific products sync completed: ${submitResult.submitted_count} products submitted in ${syncDuration}ms`,
+            )
+
+            // Immediately poll for status of newly submitted products
+            this.performImmediateStatusPoll(
+              productsToSubmit.map((p: Product) => p.externalId),
+            )
+          } catch (error) {
+            ErrorHandler.logError('Background', error, {
+              context: 'Specific products submit sync',
+              metadata: { productCount: productsToSubmit.length, externalIds },
+            })
+          } finally {
+            this.isSyncing = false
+          }
+        }, 'SyncOrchestrator.performSpecificProductsSync')
+      },
+      { threshold: 500, debugOnly: false },
+    )
   }
 
   private async performSubmitSync(syncType: SyncType): Promise<void> {
@@ -172,7 +250,7 @@ export class SyncOrchestrator {
             )
 
             // Small delay to allow for quick processing
-            await new Promise((resolve) => setTimeout(resolve, 1000))
+            await new Promise((resolve) => setTimeout(resolve, 3000))
 
             try {
               await this.performImmediateStatusPoll(

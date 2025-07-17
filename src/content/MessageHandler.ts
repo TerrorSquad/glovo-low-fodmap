@@ -40,6 +40,10 @@ export class MessageHandler {
             this.handleGetUnknownProducts(sendResponse)
             return true
 
+          case 'getProductsByExternalIds':
+            this.handleGetProductsByExternalIds(message.data, sendResponse)
+            return true
+
           case 'getProductStatistics':
             this.handleGetProductStatistics(sendResponse)
             return true
@@ -122,6 +126,33 @@ export class MessageHandler {
         } catch (error) {
           ErrorHandler.logError('Content', error, {
             context: 'Getting unknown products',
+          })
+          sendResponse([])
+        }
+      },
+    )
+  }
+
+  private async handleGetProductsByExternalIds(
+    data: { externalIds: string[] },
+    sendResponse: (response?: any) => void,
+  ): Promise<void> {
+    return await PerformanceMonitor.measureAsync(
+      'handleGetProductsByExternalIds',
+      async () => {
+        try {
+          const products = await ProductManager.getProductsArrayByExternalIds(
+            data.externalIds,
+          )
+          sendResponse(products)
+          ErrorHandler.logInfo(
+            'Content',
+            `Sent ${products.length} products by external IDs to background`,
+          )
+        } catch (error) {
+          ErrorHandler.logError('Content', error, {
+            context: 'Getting products by external IDs',
+            metadata: { externalIds: data.externalIds },
           })
           sendResponse([])
         }

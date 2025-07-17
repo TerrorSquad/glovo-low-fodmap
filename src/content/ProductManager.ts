@@ -41,7 +41,12 @@ export class ProductManager {
                 'Content',
                 `Added ${newProductsToDb.length} new products to database`,
               )
-              chrome.runtime.sendMessage({ action: 'newProductsFound' })
+              chrome.runtime.sendMessage({
+                action: 'newProductsFound',
+                data: {
+                  newProductIds: newProductsToDb.map((p) => p.externalId),
+                },
+              })
             }
           })
         } catch (error) {
@@ -124,6 +129,19 @@ export class ProductManager {
         [],
       )) || []
     return new Map(products.map((p) => [p.externalId, p]))
+  }
+
+  static async getProductsArrayByExternalIds(
+    externalIds: string[],
+  ): Promise<Product[]> {
+    return (
+      (await ErrorHandler.safeExecute(
+        async () =>
+          db.products.where('externalId').anyOf(externalIds).toArray(),
+        'Content',
+        [],
+      )) || []
+    )
   }
 
   static async getProductsByNames(names: string[]): Promise<Product[]> {

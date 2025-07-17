@@ -11,7 +11,26 @@ export interface IFodmapHelper {
 }
 
 /**
- * Handles Chrome extension messaging
+ * Handles Chrome extension messaging for the content script side.
+ * Manages communication between content script, background script, and popup.
+ * Acts as the message routing and processing center for all extension communication.
+ *
+ * Key responsibilities:
+ * - Processing Chrome runtime messages from background script and popup
+ * - Routing data requests to appropriate content script modules
+ * - Managing asynchronous response handling for data queries
+ * - Coordinating UI updates based on received messages
+ * - Handling logging and diagnostic message forwarding
+ *
+ * Message types handled:
+ * - Product data queries (unsubmitted, submitted unprocessed, by IDs)
+ * - Settings updates (hide/show preferences)
+ * - Logging and diagnostic requests
+ * - Statistics and metrics collection
+ * - Extension state management
+ *
+ * The handler implements the Chrome extension messaging protocol with proper
+ * async response handling and error management.
  */
 export class MessageHandler {
   private fodmapHelper: IFodmapHelper
@@ -20,6 +39,26 @@ export class MessageHandler {
     this.fodmapHelper = fodmapHelper
   }
 
+  /**
+   * Main message routing handler for all Chrome runtime messages
+   * Processes incoming messages and delegates to appropriate handler methods
+   *
+   * @param message - Chrome message object containing action and data
+   * @param _ - Message sender (unused but required by Chrome API)
+   * @param sendResponse - Callback function for sending async responses
+   * @returns Boolean indicating if response will be sent asynchronously
+   *
+   * Supported message actions:
+   * - 'log': Forward log messages to console
+   * - 'getUnsubmittedProducts': Retrieve products pending API submission
+   * - 'getSubmittedUnprocessedProducts': Get products awaiting classification
+   * - 'getProductsByExternalIds': Fetch specific products by ID
+   * - 'getProductStatistics': Return product database metrics
+   * - 'updateProductStatuses': Update FODMAP classifications
+   * - 'toggleHideNonLowFodmap': Toggle visibility preferences
+   *
+   * Performance monitoring and error handling are applied to all message processing.
+   */
   handleRuntimeMessage = (
     message: ChromeMessage,
     _: chrome.runtime.MessageSender,
@@ -74,6 +113,15 @@ export class MessageHandler {
     })
   }
 
+  /**
+   * Handles log message forwarding from background script to content script console
+   * Enables unified logging across extension contexts for debugging
+   *
+   * @param payload - Log message data including level, message, and optional parameters
+   *
+   * Forwards background script log messages to content script console with 'BG' prefix
+   * for easy identification during debugging and development.
+   */
   private handleLogMessage(payload: LogPayload): void {
     try {
       const level = payload.level || 'log'
@@ -87,6 +135,15 @@ export class MessageHandler {
     }
   }
 
+  /**
+   * Retrieves products that haven't been submitted to the FODMAP API yet
+   * Used by background script to identify products needing classification
+   *
+   * @param sendResponse - Callback to send product array back to requester
+   *
+   * Returns products with status 'UNKNOWN' that haven't been sent for classification.
+   * Essential for the background script's API submission workflow.
+   */
   private async handleGetUnsubmittedProducts(
     sendResponse: (response?: any) => void,
   ): Promise<void> {
@@ -110,6 +167,15 @@ export class MessageHandler {
     )
   }
 
+  /**
+   * Retrieves products that have been submitted but are still awaiting classification results
+   * Used by background script for polling API responses and checking processing status
+   *
+   * @param sendResponse - Callback to send product array back to requester
+   *
+   * Returns products with status 'PENDING' that are in the API processing pipeline.
+   * Critical for the background script's result polling and update workflow.
+   */
   private async handleGetSubmittedUnprocessedProducts(
     sendResponse: (response?: any) => void,
   ): Promise<void> {
@@ -134,6 +200,16 @@ export class MessageHandler {
     )
   }
 
+  /**
+   * Retrieves specific products by their external IDs
+   * Used for targeted product data queries and batch operations
+   *
+   * @param data - Object containing array of external IDs to look up
+   * @param sendResponse - Callback to send matching product array back to requester
+   *
+   * Efficiently fetches products by ID for background script operations,
+   * popup displays, and other targeted data access scenarios.
+   */
   private async handleGetProductsByExternalIds(
     data: { externalIds: string[] },
     sendResponse: (response?: any) => void,
@@ -161,6 +237,20 @@ export class MessageHandler {
     )
   }
 
+  /**
+   * Updates product FODMAP classifications and refreshes page styling
+   * Processes classification results from the API and applies visual updates
+   *
+   * @param data - Array of products with updated status information
+   * @param sendResponse - Callback to confirm successful update completion
+   *
+   * Workflow:
+   * 1. Updates product statuses in database
+   * 2. Triggers page style refresh to show new classifications
+   * 3. Confirms successful completion to background script
+   *
+   * Critical for applying FODMAP classification results to the user interface.
+   */
   private async handleUpdateStatuses(
     data: Product[],
     sendResponse: (response?: any) => void,
@@ -186,6 +276,19 @@ export class MessageHandler {
     )
   }
 
+  /**
+   * Generates and returns comprehensive product database statistics
+   * Provides metrics for popup display and analytics purposes
+   *
+   * @param sendResponse - Callback to send statistics object back to requester
+   *
+   * Statistics include:
+   * - Total products in database
+   * - Count by FODMAP status (LOW, HIGH, UNKNOWN, PENDING)
+   * - Breakdown for user insights and debugging
+   *
+   * Used by popup for displaying user progress and database health metrics.
+   */
   private async handleGetProductStatistics(
     sendResponse: (response?: any) => void,
   ): Promise<void> {
@@ -224,6 +327,19 @@ export class MessageHandler {
     )
   }
 
+  /**
+   * Handles preference changes for hiding/showing non-low-FODMAP products
+   * Updates both runtime state and persistent storage, then refreshes page styling
+   *
+   * @param message - Chrome message containing hide preference boolean
+   *
+   * Process:
+   * 1. Updates FodmapHelper runtime preference
+   * 2. Persists setting to browser storage for future sessions
+   * 3. Triggers immediate page style refresh to apply changes
+   *
+   * Ensures preference changes take effect immediately and persist across sessions.
+   */
   private async handleReEvaluate(message: ChromeMessage): Promise<void> {
     this.fodmapHelper.setHideNonLowFodmap(message.hide || false)
 

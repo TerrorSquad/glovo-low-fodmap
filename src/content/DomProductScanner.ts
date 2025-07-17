@@ -10,7 +10,25 @@ export interface ProductScanResult {
 }
 
 /**
- * Scans the DOM for existing Glovo product cards and extracts product data
+ * Sophisticated DOM scanner for extracting product data from Glovo pages.
+ * Handles the complex task of finding, identifying, and extracting product information
+ * from dynamically loaded content using multiple selector strategies.
+ *
+ * Key responsibilities:
+ * - Discovering product cards across different page layouts
+ * - Extracting product names, descriptions, prices, and images
+ * - Handling dynamic content updates via mutation observers
+ * - Providing fallback strategies for selector robustness
+ * - Performance monitoring and error tracking
+ *
+ * Architecture features:
+ * - Multi-tier selector system (primary Glovo selectors + fallbacks)
+ * - Mutation observer for real-time content detection
+ * - Comprehensive extraction rules for different data types
+ * - Debug and analytics capabilities for troubleshooting
+ *
+ * The scanner is designed to be resilient to Glovo's UI changes by using
+ * multiple selector strategies and graceful degradation.
  */
 export class DomProductScanner {
   private static readonly PRODUCT_SELECTORS = [
@@ -111,7 +129,26 @@ export class DomProductScanner {
   }
 
   /**
-   * Scans the entire page for product cards
+   * Performs comprehensive scan of the entire page for product cards
+   * Primary entry point for discovering all visible products on the current page
+   *
+   * @returns ProductScanResult containing discovered products, metrics, and errors
+   *
+   * Scanning process:
+   * 1. Searches for elements matching product card selectors
+   * 2. Extracts product data from each discovered element
+   * 3. Applies data validation and cleaning
+   * 4. Collects performance metrics and error information
+   * 5. Provides debug information for troubleshooting
+   *
+   * Features:
+   * - Multi-selector strategy for maximum coverage
+   * - Graceful error handling for malformed elements
+   * - Performance monitoring and metrics collection
+   * - Debug output for development and troubleshooting
+   *
+   * Used by: Initial page load scanning, manual refresh operations,
+   * and diagnostic tools for checking page parsing accuracy
    */
   static scanPage(): ProductScanResult {
     const startTime = performance.now()
@@ -250,6 +287,21 @@ export class DomProductScanner {
 
   /**
    * Scans a specific container for product cards
+  /**
+   * Scans a specific DOM container for product cards
+   * More targeted scanning for specific page sections or dynamically added content
+   * 
+   * @param container - DOM element to search within for product cards
+   * @returns ProductScanResult containing products found within the container
+   * 
+   * Use cases:
+   * - Scanning newly added content sections
+   * - Processing specific page areas (e.g., recommendation widgets)
+   * - Handling incremental content loading scenarios
+   * - Mutation observer callbacks for targeted updates
+   * 
+   * More efficient than full page scans when you know the specific
+   * area that contains new or updated product information.
    */
   static scanContainer(container: Element): ProductScanResult {
     const startTime = performance.now()
@@ -660,6 +712,28 @@ export class DomProductScanner {
 
   /**
    * Sets up a mutation observer to catch dynamically added products
+  /**
+   * Sets up a MutationObserver to detect dynamically added product cards
+   * Enables real-time detection of new products as they're loaded via AJAX or navigation
+   * 
+   * @param callback - Function called when new products are detected
+   * @returns MutationObserver instance for lifecycle management
+   * 
+   * Observer capabilities:
+   * - Detects new DOM nodes added to the page
+   * - Identifies product cards within added content
+   * - Extracts product data from newly discovered elements
+   * - Handles both direct product additions and container additions
+   * - Debounces rapid changes to avoid excessive processing
+   * 
+   * Monitoring strategy:
+   * 1. Watches for childList mutations across the document
+   * 2. Checks if added nodes are product cards or contain product cards
+   * 3. Extracts product data from valid discoveries
+   * 4. Invokes callback with discovered products
+   * 
+   * Essential for single-page applications where content loads dynamically
+   * without full page refreshes (like Glovo's infinite scroll and filtering).
    */
   static setupMutationObserver(
     callback: (products: Product[]) => void,
@@ -728,8 +802,27 @@ export class DomProductScanner {
   }
 
   /**
-   * Debug utility to analyze the current page structure
-   * Call this in browser console: window.fodmapDebug.analyzePage()
+   * Debug utility for analyzing page structure and product detection
+   * Comprehensive diagnostic tool for troubleshooting scanning issues
+   *
+   * Diagnostic features:
+   * - Document readiness and structure analysis
+   * - Selector effectiveness evaluation
+   * - Product element discovery statistics
+   * - Data extraction validation
+   * - Common issue identification and guidance
+   *
+   * Usage: Call `window.fodmapDebug.analyzePage()` in browser console
+   *
+   * Output includes:
+   * - Page structure overview
+   * - Selector matching results
+   * - Sample product data extraction
+   * - Performance metrics
+   * - Troubleshooting recommendations
+   *
+   * Essential for debugging when products aren't being detected correctly
+   * or when adapting to changes in Glovo's page structure.
    */
   static analyzePage(): void {
     Logger.info('DomProductScanner', '🔍 Glovo Page Structure Analysis')

@@ -315,10 +315,12 @@ export class SyncOrchestrator {
             return
           }
 
-          // Get products that need submission
-          const unsubmittedProducts =
-            await ContentMessenger.getUnsubmittedProducts()
-          const externalIds = unsubmittedProducts.map((p) => p.externalId)
+          // Get products that have been submitted but not yet processed
+          const submittedUnprocessedProducts =
+            await ContentMessenger.getSubmittedUnprocessedProducts()
+          const externalIds = submittedUnprocessedProducts.map(
+            (p) => p.externalId,
+          )
 
           if (!externalIds.length) {
             return
@@ -333,7 +335,7 @@ export class SyncOrchestrator {
             const updatedProducts = statusResult.results
               .filter((apiProduct) => apiProduct.status !== 'PENDING') // Only update completed classifications
               .map((apiProduct) => {
-                const originalProduct = unsubmittedProducts.find(
+                const originalProduct = submittedUnprocessedProducts.find(
                   (p) => p.externalId === apiProduct.externalId,
                 )
                 if (!originalProduct) return null
@@ -388,14 +390,14 @@ export class SyncOrchestrator {
       const statusResult = await this.apiClient.pollProductStatus(productIds)
 
       if (statusResult.results.length > 0) {
-        // Get unsubmitted products to have full Product objects
-        const unsubmittedProducts =
-          await ContentMessenger.getUnsubmittedProducts()
+        // Get specific products by their external IDs to have full Product objects
+        const specificProducts =
+          await ContentMessenger.getProductsByExternalIds(productIds)
 
         const updatedProducts = statusResult.results
           .filter((apiProduct) => apiProduct.status !== 'PENDING') // Only update completed classifications
           .map((apiProduct) => {
-            const originalProduct = unsubmittedProducts.find(
+            const originalProduct = specificProducts.find(
               (p: Product) => p.externalId === apiProduct.externalId,
             )
             if (!originalProduct) return null

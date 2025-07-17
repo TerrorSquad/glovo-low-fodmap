@@ -36,6 +36,10 @@ export class MessageHandler {
             this.handleGetUnsubmittedProducts(sendResponse)
             return true
 
+          case 'getSubmittedUnprocessedProducts':
+            this.handleGetSubmittedUnprocessedProducts(sendResponse)
+            return true
+
           case 'getProductsByExternalIds':
             this.handleGetProductsByExternalIds(message.data, sendResponse)
             return true
@@ -99,6 +103,30 @@ export class MessageHandler {
         } catch (error) {
           ErrorHandler.logError('Content', error, {
             context: 'Getting unsubmitted products',
+          })
+          sendResponse([])
+        }
+      },
+    )
+  }
+
+  private async handleGetSubmittedUnprocessedProducts(
+    sendResponse: (response?: any) => void,
+  ): Promise<void> {
+    return await PerformanceMonitor.measureAsync(
+      'handleGetSubmittedUnprocessedProducts',
+      async () => {
+        try {
+          const products =
+            await ProductManager.getSubmittedUnprocessedProducts()
+          sendResponse(products)
+          ErrorHandler.logInfo(
+            'Content',
+            `Sent ${products.length} submitted unprocessed products to background`,
+          )
+        } catch (error) {
+          ErrorHandler.logError('Content', error, {
+            context: 'Getting submitted unprocessed products',
           })
           sendResponse([])
         }

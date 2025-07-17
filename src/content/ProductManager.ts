@@ -128,6 +128,27 @@ export class ProductManager {
     )
   }
 
+  static async getSubmittedUnprocessedProducts(): Promise<Product[]> {
+    return (
+      (await ErrorHandler.safeExecute(
+        async () =>
+          db.products
+            .where('status')
+            .equals('PENDING')
+            .and(
+              (product) =>
+                product.submittedAt !== null &&
+                product.submittedAt !== undefined &&
+                (product.processedAt === null ||
+                  product.processedAt === undefined),
+            )
+            .toArray(),
+        'Content',
+        [],
+      )) || []
+    )
+  }
+
   static async getProductsByExternalIds(
     externalIds: string[],
   ): Promise<Map<string, Product>> {

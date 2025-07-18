@@ -1,7 +1,7 @@
 import { crx } from '@crxjs/vite-plugin'
 import { defineConfig } from 'vite'
 import tailwindcss from 'tailwindcss'
-import manifest from './manifest.json'
+import manifest from './src/manifest.json'
 import pkg from './package.json'
 
 function generateManifest() {

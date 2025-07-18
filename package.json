@@ -13,8 +13,7 @@
     "prepare": "husky",
     "commit": "commit",
     "biome": "biome",
-    "release": "pnpm standard-version && pnpm postversion",
-    "postversion": "node scripts/sync-manifest-version.js && git add src/manifest.json && git commit --amend --no-edit --no-verify"
+    "release-please": "release-please"
   },
   "keywords": [],
   "author": "Goran Ninković",
@@ -35,7 +34,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
     "postcss": "^8.5.6",
-    "standard-version": "^9.5.0",
+    "release-please": "^17.1.1",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "vite": "^7.0.5"

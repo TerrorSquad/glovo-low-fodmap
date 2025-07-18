@@ -5,17 +5,69 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      upload_url: ${{ steps.release.outputs.upload_url }}
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
     steps:
       - uses: googleapis/release-please-action@v4
+        id: release
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  build_and_upload:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Potrebno za kačenje asset-a na release
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create Environment File
+        run: |
+          echo "VITE_API_ENDPOINT=${{ secrets.VITE_API_ENDPOINT }}" > .env.production
+
+      - name: Build the extension
+        run: pnpm run build:prod
+
+      - name: Create ZIP archive
+        run: |
+          mv dist extension
+          zip -r extension-${{ needs.release-please.outputs.tag_name }}.zip extension
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release-please.outputs.upload_url }}
+          asset_path: ./extension-${{ needs.release-please.outputs.tag_name }}.zip
+          asset_name: extension-${{ needs.release-please.outputs.tag_name }}.zip
+          asset_content_type: application/zip

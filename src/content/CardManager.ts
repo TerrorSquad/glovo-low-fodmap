@@ -1,6 +1,7 @@
 import { Config } from '../shared/Config'
 import { type Product } from '../shared/db'
 import { ErrorHandler } from '../shared/ErrorHandler'
+import { Logger } from '../shared/Logger'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import { type InjectedProductData } from '../shared/types'
 import { ProductManager } from './ProductManager'
@@ -61,7 +62,7 @@ export class CardManager {
           }
         })
 
-        ErrorHandler.logInfo(
+        Logger.info(
           'Content',
           `Tagged ${untaggedCards.length} cards with external IDs`,
         )
@@ -103,7 +104,7 @@ export class CardManager {
           }
         })
 
-        ErrorHandler.logInfo(
+        Logger.info(
           'Content',
           `Tagged ${untaggedCards.length} cards with external IDs from database`,
         )
@@ -216,7 +217,7 @@ export class CardManager {
                 ? `(${filterDescription.join(', ')})`
                 : '(showing all)'
 
-            ErrorHandler.logInfo(
+            Logger.info(
               'Content',
               `Updated styles for ${changedCards}/${allCards.length} cards ${filterText}`,
             )

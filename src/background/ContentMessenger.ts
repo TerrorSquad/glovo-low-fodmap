@@ -1,5 +1,6 @@
 import { type Product } from '../shared/db'
 import { ErrorHandler } from '../shared/ErrorHandler'
+import { Logger } from '../shared/Logger'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 
 /**
@@ -61,7 +62,7 @@ export class ContentMessenger {
       async () => {
         const tab = await ContentMessenger.findActiveGlovoTab()
         if (!tab?.id) {
-          ErrorHandler.logInfo(
+          Logger.info(
             'Background',
             'No active Glovo tab found for unsubmitted products',
           )
@@ -72,7 +73,7 @@ export class ContentMessenger {
           const products = await ContentMessenger.sendToContent(tab.id, {
             action: 'getUnsubmittedProducts',
           })
-          ErrorHandler.logInfo(
+          Logger.info(
             'Background',
             `Retrieved ${products?.length || 0} unsubmitted products`,
           )
@@ -100,7 +101,7 @@ export class ContentMessenger {
       async () => {
         const tab = await ContentMessenger.findActiveGlovoTab()
         if (!tab?.id) {
-          ErrorHandler.logInfo(
+          Logger.info(
             'Background',
             'No active Glovo tab found for submitted unprocessed products',
           )
@@ -111,7 +112,7 @@ export class ContentMessenger {
           const products = await ContentMessenger.sendToContent(tab.id, {
             action: 'getSubmittedUnprocessedProducts',
           })
-          ErrorHandler.logInfo(
+          Logger.info(
             'Background',
             `Retrieved ${products?.length || 0} submitted unprocessed products`,
           )
@@ -142,7 +143,7 @@ export class ContentMessenger {
       async () => {
         const tab = await ContentMessenger.findActiveGlovoTab()
         if (!tab?.id) {
-          ErrorHandler.logInfo(
+          Logger.info(
             'Background',
             'No active Glovo tab found for specific products',
           )
@@ -154,7 +155,7 @@ export class ContentMessenger {
             action: 'getProductsByExternalIds',
             data: { externalIds },
           })
-          ErrorHandler.logInfo(
+          Logger.info(
             'Background',
             `Retrieved ${products?.length || 0} products by external IDs`,
           )
@@ -183,7 +184,7 @@ export class ContentMessenger {
       async () => {
         const tab = await ContentMessenger.findActiveGlovoTab()
         if (!tab?.id) {
-          ErrorHandler.logWarning(
+          Logger.warn(
             'Background',
             'No active Glovo tab found for status update',
           )
@@ -195,7 +196,7 @@ export class ContentMessenger {
             action: 'updateStatuses',
             data: results,
           })
-          ErrorHandler.logInfo(
+          Logger.info(
             'Background',
             `Updated ${results.length} product statuses`,
           )
@@ -216,7 +217,7 @@ export class ContentMessenger {
       async () => {
         const tab = await ContentMessenger.findActiveGlovoTab()
         if (!tab?.id) {
-          ErrorHandler.logWarning(
+          Logger.warn(
             'Background',
             'No active Glovo tab found for resetting submittedAt',
           )
@@ -228,7 +229,7 @@ export class ContentMessenger {
             action: 'resetSubmittedAtForMissingProducts',
             data: { externalIds },
           })
-          ErrorHandler.logInfo(
+          Logger.info(
             'Background',
             `Reset submittedAt for ${externalIds.length} products`,
           )
@@ -236,37 +237,6 @@ export class ContentMessenger {
           ErrorHandler.logError('Background', error, {
             context: 'Resetting submittedAt for missing products',
             metadata: { externalIds },
-          })
-        }
-      },
-    )
-  }
-
-  /**
-   * Sends log messages to content script for unified logging.
-   * Allows background script logs to be forwarded to content script logger.
-   * Used to consolidate logging output from both contexts.
-   *
-   * @param level - Log level (log, warn, error)
-   * @param message - Main log message
-   * @param optionalParams - Additional parameters to log
-   */
-  static sendLogMessage(
-    level: 'log' | 'warn' | 'error',
-    message: unknown,
-    optionalParams: unknown[],
-  ): void {
-    chrome.tabs.query(
-      { active: true, url: ContentMessenger.GLOVO_URL_PATTERN },
-      (tabs) => {
-        if (tabs[0]?.id) {
-          chrome.tabs.sendMessage(tabs[0].id, {
-            action: 'log',
-            payload: {
-              level,
-              message,
-              optionalParams,
-            },
           })
         }
       },

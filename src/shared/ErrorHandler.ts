@@ -13,30 +13,6 @@ export class ErrorHandler {
     Logger.error(context, errorMessage, error, metadata)
   }
 
-  static logWarning(
-    context: string,
-    message: string,
-    metadata?: Record<string, unknown>,
-  ): void {
-    Logger.warn(context, message, metadata)
-  }
-
-  static logInfo(
-    context: string,
-    message: string,
-    metadata?: Record<string, unknown>,
-  ): void {
-    Logger.info(context, message, metadata)
-  }
-
-  static logDebug(
-    context: string,
-    message: string,
-    metadata?: Record<string, unknown>,
-  ): void {
-    Logger.debug(context, message, metadata)
-  }
-
   static async safeExecute<T>(
     operation: () => Promise<T>,
     context: string,

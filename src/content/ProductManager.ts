@@ -1,6 +1,7 @@
 import { db, type Product } from '../shared/db'
 import { ErrorBoundary } from '../shared/ErrorBoundary'
 import { ErrorHandler } from '../shared/ErrorHandler'
+import { Logger } from '../shared/Logger'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import type { InjectedProductData } from '../shared/types'
 
@@ -26,7 +27,7 @@ export class ProductManager {
         .modify({ submittedAt: null })
 
       if (count > 0) {
-        ErrorHandler.logInfo(
+        Logger.info(
           'Content',
           `Reset submittedAt for ${count}/${missingIds.length} missing products`,
         )
@@ -70,7 +71,7 @@ export class ProductManager {
 
             if (newProductsToDb.length > 0) {
               await db.products.bulkAdd(newProductsToDb)
-              ErrorHandler.logInfo(
+              Logger.info(
                 'Content',
                 `Added ${newProductsToDb.length} new products to database`,
               )
@@ -144,7 +145,7 @@ export class ProductManager {
 
           if (finalUpdates.length > 0) {
             await db.products.bulkPut(finalUpdates)
-            ErrorHandler.logInfo(
+            Logger.info(
               'Content',
               `Updated ${finalUpdates.length} product statuses from API`,
             )

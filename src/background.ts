@@ -3,6 +3,7 @@ import { SyncOrchestrator } from './background/SyncOrchestrator'
 import { Config } from './shared/Config'
 import { ErrorHandler } from './shared/ErrorHandler'
 import { ExtensionMonitor } from './shared/ExtensionMonitor'
+import { Logger } from './shared/Logger'
 
 // Initialize the background services
 const syncOrchestrator = SyncOrchestrator.getInstance()
@@ -25,15 +26,15 @@ monitor.start()
 
 // Start periodic sync if enabled
 if (Config.ENABLE_SYNC) {
-  ErrorHandler.logInfo('Background', 'Starting background sync system...')
+  Logger.info('Background', 'Starting background sync system...')
   syncOrchestrator.startPeriodicSync()
 } else {
-  ErrorHandler.logInfo('Background', 'Background sync is disabled')
+  Logger.info('Background', 'Background sync is disabled')
 }
 
 // Cleanup on extension shutdown
 chrome.runtime.onSuspend.addListener(() => {
-  ErrorHandler.logInfo('Background', 'Extension suspending, cleaning up...')
+  Logger.info('Background', 'Extension suspending, cleaning up...')
   syncOrchestrator.stopPeriodicSync()
   monitor.stop()
 })

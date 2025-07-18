@@ -1,8 +1,8 @@
 import { Config } from '../shared/Config'
 import type { Product } from '../shared/db'
-import { db } from '../shared/db'
 import { ErrorBoundary } from '../shared/ErrorBoundary'
 import { ErrorHandler } from '../shared/ErrorHandler'
+import { Logger } from '../shared/Logger'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import { ContentMessenger } from './ContentMessenger'
 import type { StatusResponse } from './FodmapApiClient'
@@ -39,7 +39,7 @@ export class SyncOrchestrator {
         return
       }
 
-      ErrorHandler.logInfo('Background', 'Starting periodic sync and polling')
+      Logger.info('Background', 'Starting periodic sync and polling')
 
       // Start submit sync (for unsubmitted products)
       this.syncInterval = setInterval(() => {
@@ -74,7 +74,7 @@ export class SyncOrchestrator {
         clearInterval(this.pollInterval)
         this.pollInterval = undefined
       }
-      ErrorHandler.logInfo('Background', 'Stopped periodic sync and polling')
+      Logger.info('Background', 'Stopped periodic sync and polling')
     }, 'SyncOrchestrator.stopPeriodicSync')
   }
 
@@ -88,10 +88,6 @@ export class SyncOrchestrator {
 
   async forcePollStatus(): Promise<StatusResponse | undefined> {
     return await this.performStatusPoll()
-  }
-
-  async checkApiHealth(): Promise<{ isHealthy: boolean; message: string }> {
-    return await this.apiClient.healthCheck()
   }
 
   /**
@@ -130,7 +126,7 @@ export class SyncOrchestrator {
       async () => {
         await ErrorBoundary.protect(async () => {
           if (this.isSyncing) {
-            ErrorHandler.logInfo(
+            Logger.info(
               'Background',
               'Submit sync already in progress, skipping specific products sync',
             )
@@ -141,7 +137,7 @@ export class SyncOrchestrator {
 
           const tab = await ContentMessenger.findActiveGlovoTab()
           if (!tab?.id) {
-            ErrorHandler.logInfo(
+            Logger.info(
               'Background',
               'No active Glovo tab found for specific products sync',
             )
@@ -161,14 +157,14 @@ export class SyncOrchestrator {
           )
 
           if (!productsToSubmit.length) {
-            ErrorHandler.logInfo(
+            Logger.info(
               'Background',
               `No unsubmitted products found for specific sync with IDs: ${externalIds.join(', ')}`,
             )
             return
           }
 
-          ErrorHandler.logInfo(
+          Logger.info(
             'Background',
             `Starting specific products sync for ${productsToSubmit.length} unsubmitted products`,
           )
@@ -187,13 +183,11 @@ export class SyncOrchestrator {
           this.isSyncing = true
 
           try {
-            const submitResult =
-              await this.apiClient.submitProducts(productsToSubmit)
+            await this.apiClient.submitProducts(productsToSubmit)
             const syncDuration = Math.round(performance.now() - startTime)
-
-            ErrorHandler.logInfo(
+            Logger.info(
               'Background',
-              `Specific products sync completed: ${submitResult.submitted_count} products submitted in ${syncDuration}ms`,
+              `Specific products sync completed: ${productsToSubmit.length} products submitted in ${syncDuration}ms`,
             )
             // Wait a moment to allow API processing
             await new Promise((resolve) => setTimeout(resolve, 3000))
@@ -222,7 +216,7 @@ export class SyncOrchestrator {
       async () => {
         await ErrorBoundary.protect(async () => {
           if (this.isSyncing) {
-            ErrorHandler.logInfo(
+            Logger.info(
               'Background',
               'Submit sync already in progress, skipping',
             )
@@ -230,7 +224,7 @@ export class SyncOrchestrator {
           }
 
           if (!this.apiClient.isConfigured()) {
-            ErrorHandler.logInfo(
+            Logger.info(
               'Background',
               'API client not configured, skipping submit sync',
             )
@@ -243,7 +237,7 @@ export class SyncOrchestrator {
           const tab = await ContentMessenger.findActiveGlovoTab()
           if (!tab?.id) {
             if (syncType === 'manual') {
-              ErrorHandler.logInfo(
+              Logger.info(
                 'Background',
                 `No active Glovo tab found for ${syncType} sync`,
               )
@@ -256,14 +250,14 @@ export class SyncOrchestrator {
             await ContentMessenger.getUnsubmittedProducts()
 
           if (!productsToSubmit.length) {
-            ErrorHandler.logInfo(
+            Logger.info(
               'Background',
               `No products to submit for ${syncType} sync`,
             )
             return
           }
 
-          ErrorHandler.logInfo(
+          Logger.info(
             'Background',
             `Starting ${syncType} submit sync for ${productsToSubmit.length} products`,
           )
@@ -294,13 +288,13 @@ export class SyncOrchestrator {
             const syncDuration = Date.now() - syncStartTime
             this.lastSyncTime = Date.now()
 
-            ErrorHandler.logInfo(
+            Logger.info(
               'Background',
               `${syncType} submit sync completed: ${submitResult.submitted_count} products submitted in ${syncDuration}ms`,
             )
 
             // Immediately poll for any quick classifications
-            ErrorHandler.logInfo(
+            Logger.info(
               'Background',
               'Performing immediate status poll after submission...',
             )
@@ -391,12 +385,12 @@ export class SyncOrchestrator {
             if (updatedProducts.length > 0) {
               await ContentMessenger.updateProductStatuses(updatedProducts)
 
-              ErrorHandler.logInfo(
+              Logger.info(
                 'Background',
                 `Status poll completed: ${updatedProducts.length} products updated (${statusResult.found} found, ${statusResult.missing} missing)`,
               )
             } else if (statusResult.results.length > 0) {
-              ErrorHandler.logInfo(
+              Logger.info(
                 'Background',
                 `Status poll completed: All ${statusResult.results.length} products still pending`,
               )
@@ -421,7 +415,7 @@ export class SyncOrchestrator {
     if (productIds.length === 0) return
 
     await ErrorBoundary.protect(async () => {
-      ErrorHandler.logInfo(
+      Logger.info(
         'Background',
         `Starting immediate status poll for ${productIds.length} products`,
       )
@@ -456,12 +450,12 @@ export class SyncOrchestrator {
         if (updatedProducts.length > 0) {
           await ContentMessenger.updateProductStatuses(updatedProducts)
 
-          ErrorHandler.logInfo(
+          Logger.info(
             'Background',
             `Immediate status poll completed: ${updatedProducts.length} products quickly classified`,
           )
         } else {
-          ErrorHandler.logInfo(
+          Logger.info(
             'Background',
             'Immediate status poll: All products still pending classification',
           )

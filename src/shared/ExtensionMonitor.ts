@@ -1,6 +1,7 @@
 import { ErrorBoundary } from '../shared/ErrorBoundary'
 import { Logger } from '../shared/Logger'
 import { MetricsCollector } from '../shared/MetricsCollector'
+import { ErrorHandler } from './ErrorHandler'
 
 export interface SystemStatus {
   timestamp: number
@@ -98,7 +99,9 @@ export class ExtensionMonitor {
         await this.handleWarningHealth(status)
       }
     } catch (error) {
-      Logger.error('ExtensionMonitor', 'Health check failed', error)
+      ErrorHandler.logError('ExtensionMonitor', error, {
+        context: 'Performing health check',
+      })
       MetricsCollector.record('health.check.error', 1)
     }
   }
@@ -226,11 +229,9 @@ export class ExtensionMonitor {
 
           return true
         } catch (error) {
-          Logger.error(
-            'ExtensionMonitor',
-            'Failed to reload content scripts',
-            error,
-          )
+          ErrorHandler.logError('ExtensionMonitor', error, {
+            context: 'Reloading content scripts',
+          })
           return false
         }
       },
@@ -263,7 +264,9 @@ export class ExtensionMonitor {
 
           return true
         } catch (error) {
-          Logger.error('ExtensionMonitor', 'Failed to repair storage', error)
+          ErrorHandler.logError('ExtensionMonitor', error, {
+            context: 'Repairing storage',
+          })
           return false
         }
       },

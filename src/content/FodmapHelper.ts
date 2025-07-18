@@ -1,5 +1,7 @@
 import { DiagnosticUtils } from '../shared/DiagnosticUtils'
 import { ErrorBoundary } from '../shared/ErrorBoundary'
+import { ErrorHandler } from '../shared/ErrorHandler'
+import { Logger } from '../shared/Logger'
 import { type InjectedProductData } from '../shared/types'
 import { CardManager } from './CardManager'
 import { DomProductScanner } from './DomProductScanner'
@@ -81,12 +83,14 @@ export class FodmapHelper implements IFodmapHelper {
           maxRetries: 3,
           retryDelayMs: 1000,
           onError: (error) => {
-            console.warn(
+            Logger.warn(
+              'FodmapHelper',
               `FODMAP Helper initialization failed: ${error.message}`,
             )
           },
           onRecovery: () => {
-            console.log(
+            Logger.info(
+              'FodmapHelper',
               'FODMAP Helper successfully recovered from initialization error',
             )
           },
@@ -208,7 +212,9 @@ export class FodmapHelper implements IFodmapHelper {
       `
       document.head.appendChild(style)
     } catch (error) {
-      console.warn('Failed to load tooltip font size:', error)
+      ErrorHandler.logError('FodmapHelper', error, {
+        context: 'Loading tooltip font size',
+      })
     }
   }
 
@@ -274,7 +280,8 @@ export class FodmapHelper implements IFodmapHelper {
    */
   private async performInitialDomScan(): Promise<void> {
     await ErrorBoundary.protect(async () => {
-      console.log(
+      Logger.info(
+        'FodmapHelper',
         '🔍 FODMAP Helper: Starting progressive scan for existing products...',
       )
 
@@ -288,7 +295,8 @@ export class FodmapHelper implements IFodmapHelper {
         attempt++
         const waitTime = retryDelay * attempt // Increasing delay
 
-        console.log(
+        Logger.debug(
+          'FodmapHelper',
           `🔍 FODMAP Helper: Scan attempt ${attempt}/${maxRetries} (waiting ${waitTime}ms)`,
         )
         await new Promise((resolve) => setTimeout(resolve, waitTime))
@@ -296,7 +304,8 @@ export class FodmapHelper implements IFodmapHelper {
         const scanResult = DomProductScanner.scanPage()
 
         if (scanResult.extractedProducts > 0) {
-          console.log(
+          Logger.info(
+            'FodmapHelper',
             `✅ FODMAP Helper: Found ${scanResult.extractedProducts} products on attempt ${attempt}`,
           )
 
@@ -308,7 +317,8 @@ export class FodmapHelper implements IFodmapHelper {
             await ProductManager.getProductsByNames(productNames)
 
           if (existingProducts.length > 0) {
-            console.log(
+            Logger.info(
+              'FodmapHelper',
               `📄 FODMAP Helper: Found ${existingProducts.length} products in database from ${productNames.length} scanned`,
             )
 
@@ -318,7 +328,8 @@ export class FodmapHelper implements IFodmapHelper {
 
             totalFound += existingProducts.length
           } else {
-            console.log(
+            Logger.info(
+              'FodmapHelper',
               `ℹ️ FODMAP Helper: No products found in database for scanned names`,
             )
           }
@@ -327,31 +338,38 @@ export class FodmapHelper implements IFodmapHelper {
           await new Promise((resolve) => setTimeout(resolve, 1000))
           const finalScan = DomProductScanner.scanPage()
           if (finalScan.extractedProducts <= scanResult.extractedProducts) {
-            console.log(
+            Logger.info(
+              'FodmapHelper',
               `✅ FODMAP Helper: Scan completed with ${totalFound} total products`,
             )
             break
           }
         } else {
-          console.log(
+          Logger.info(
+            'FodmapHelper',
             `ℹ️ FODMAP Helper: No products found on attempt ${attempt}`,
           )
         }
 
         if (scanResult.errors.length > 0) {
-          console.warn(
+          Logger.warn(
+            'FodmapHelper',
             `⚠️ FODMAP Helper: Scan attempt ${attempt} had errors:`,
-            scanResult.errors,
+            { errors: scanResult.errors },
           )
         }
       }
 
       if (totalFound === 0) {
-        console.warn(
+        Logger.warn(
+          'FodmapHelper',
           '⚠️ FODMAP Helper: No products found after all retry attempts. Page may not have loaded or selectors may be incorrect.',
         )
-        console.log('🔍 Debug: Current page HTML structure:')
-        console.log(document.body.innerHTML.substring(0, 2000) + '...')
+        Logger.debug('FodmapHelper', '🔍 Debug: Current page HTML structure:')
+        Logger.debug(
+          'FodmapHelper',
+          document.body.innerHTML.substring(0, 2000) + '...',
+        )
       }
     }, 'initial-dom-scan')
   }
@@ -372,7 +390,8 @@ export class FodmapHelper implements IFodmapHelper {
     this.mutationObserver = DomProductScanner.setupMutationObserver(
       async (products) => {
         await ErrorBoundary.protect(async () => {
-          console.log(
+          Logger.debug(
+            'FodmapHelper',
             `🔍 FODMAP Helper: Detected ${products.length} new products via DOM changes`,
           )
 
@@ -382,7 +401,8 @@ export class FodmapHelper implements IFodmapHelper {
             await ProductManager.getProductsByNames(productNames)
 
           if (existingProducts.length > 0) {
-            console.log(
+            Logger.info(
+              'FodmapHelper',
               `📄 FODMAP Helper: Found ${existingProducts.length} new products in database`,
             )
             CardManager.tagVisibleCardsByName(existingProducts)

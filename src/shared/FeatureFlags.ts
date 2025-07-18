@@ -1,4 +1,5 @@
 import { Config } from './Config'
+import { ErrorHandler } from './ErrorHandler'
 import { Logger } from './Logger'
 
 /**
@@ -61,7 +62,7 @@ export class FeatureFlags {
     const cacheKey = `feature_${flagName}`
 
     if (FeatureFlags.cache.has(cacheKey)) {
-      return FeatureFlags.cache.get(cacheKey)!
+      return FeatureFlags.cache.get(cacheKey) ?? false
     }
 
     try {
@@ -72,11 +73,11 @@ export class FeatureFlags {
       Logger.debug('FeatureFlags', `Custom feature ${flagName}: ${value}`)
       return value
     } catch (error) {
-      Logger.error(
-        'FeatureFlags',
-        `Failed to check custom feature ${flagName}`,
-        error,
-      )
+      ErrorHandler.logError('FeatureFlags', error, {
+        context: 'Checking custom feature flag',
+        flagName,
+        defaultValue,
+      })
       return defaultValue
     }
   }
@@ -96,11 +97,11 @@ export class FeatureFlags {
 
       Logger.info('FeatureFlags', `Set custom feature ${flagName} to ${value}`)
     } catch (error) {
-      Logger.error(
-        'FeatureFlags',
-        `Failed to set custom feature ${flagName}`,
-        error,
-      )
+      ErrorHandler.logError('FeatureFlags', error, {
+        context: 'Setting custom feature flag',
+        flagName,
+        value,
+      })
     }
   }
 

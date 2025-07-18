@@ -1,4 +1,5 @@
 import { Config } from './Config'
+import { ErrorHandler } from './ErrorHandler'
 import { Logger } from './Logger'
 import { MetricsCollector } from './MetricsCollector'
 
@@ -56,11 +57,10 @@ export class ErrorBoundary {
       const currentRetries = ErrorBoundary.retryCount.get(retryKey) || 0
       ErrorBoundary.retryCount.set(retryKey, currentRetries + 1)
 
-      Logger.error(
-        'ErrorBoundary',
-        `Error in ${context} (attempt ${currentRetries + 1}/${opts.maxRetries})`,
-        error,
-      )
+      ErrorHandler.logError('ErrorBoundary', error, {
+        context,
+        metadata: { attempt: currentRetries + 1, maxRetries: opts.maxRetries },
+      })
       MetricsCollector.record('error.boundary.triggered', 1, {
         context,
         attempt: currentRetries + 1,
@@ -81,7 +81,7 @@ export class ErrorBoundary {
         }
       }
 
-      Logger.error(
+      ErrorHandler.logError(
         'ErrorBoundary',
         `Failed to recover from error in ${context} after ${opts.maxRetries} attempts`,
       )
@@ -159,11 +159,10 @@ export class ErrorBoundary {
           `Recovery strategy '${strategy.name}' did not succeed`,
         )
       } catch (strategyError) {
-        Logger.error(
-          'ErrorBoundary',
-          `Recovery strategy '${strategy.name}' failed`,
-          strategyError,
-        )
+        ErrorHandler.logError('ErrorBoundary', strategyError, {
+          context: `Executing recovery strategy '${strategy.name}'`,
+          metadata: { strategyName: strategy.name },
+        })
         MetricsCollector.record('error.boundary.strategy.error', 1, {
           context,
           strategy: strategy.name,
@@ -388,7 +387,9 @@ export class ErrorBoundary {
 
       return { status, issues, recommendations }
     } catch (error) {
-      Logger.error('ErrorBoundary', 'System check failed', error)
+      ErrorHandler.logError('ErrorBoundary', error, {
+        context: 'Performing system check',
+      })
       return {
         status: 'critical',
         issues: ['System check failed'],

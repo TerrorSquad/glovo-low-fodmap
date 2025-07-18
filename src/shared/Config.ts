@@ -1,4 +1,5 @@
 import { ErrorHandler } from './ErrorHandler'
+import { Logger } from './Logger'
 
 /**
  * Configuration management for the extension
@@ -91,7 +92,7 @@ export class Config {
     }
 
     if (issues.length > 0) {
-      ErrorHandler.logWarning('Config', 'Configuration issues found:', {
+      Logger.warn('Config', 'Configuration issues found:', {
         issues,
       })
       return false

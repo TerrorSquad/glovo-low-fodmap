@@ -1,5 +1,6 @@
 import { Config } from './Config'
 import { ErrorBoundary } from './ErrorBoundary'
+import { ErrorHandler } from './ErrorHandler'
 import { Logger } from './Logger'
 import { MetricsCollector } from './MetricsCollector'
 
@@ -481,7 +482,9 @@ export class ExtensionTester {
       const coreTests = await ExtensionTester.runCoreFunctionalityTests()
       return coreTests.passed
     } catch (error) {
-      Logger.error('ExtensionTester', 'Quick health check failed', error)
+      ErrorHandler.logError('ExtensionTester', error, {
+        context: 'Quick health check failed',
+      })
       return false
     }
   }

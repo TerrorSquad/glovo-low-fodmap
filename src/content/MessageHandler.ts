@@ -1,7 +1,8 @@
 import { type Product } from '../shared/db'
 import { ErrorHandler } from '../shared/ErrorHandler'
+import { Logger } from '../shared/Logger'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
-import { type ChromeMessage, type LogPayload } from '../shared/types'
+import { type ChromeMessage } from '../shared/types'
 import { ProductManager } from './ProductManager'
 import { StorageManager } from './StorageManager'
 
@@ -68,9 +69,6 @@ export class MessageHandler {
     return PerformanceMonitor.measure('handleRuntimeMessage', () => {
       try {
         switch (message.action) {
-          case 'log':
-            this.handleLogMessage(message.payload)
-            break
           case 'resetSubmittedAtForMissingProducts':
             this.handleResetSubmittedAtForMissingProducts(
               message.data,
@@ -117,28 +115,6 @@ export class MessageHandler {
   }
 
   /**
-   * Handles log message forwarding from background script to content script console
-   * Enables unified logging across extension contexts for debugging
-   *
-   * @param payload - Log message data including level, message, and optional parameters
-   *
-   * Forwards background script log messages to content script console with 'BG' prefix
-   * for easy identification during debugging and development.
-   */
-  private handleLogMessage(payload: LogPayload): void {
-    try {
-      const level = payload.level || 'log'
-      const msg = payload.message || ''
-      const optionalParams = payload.optionalParams || []
-      console[level](`BG ${msg}`, ...optionalParams)
-    } catch (error) {
-      ErrorHandler.logError('Content', error, {
-        context: 'Log message handling',
-      })
-    }
-  }
-
-  /**
    * Retrieves products that haven't been submitted to the FODMAP API yet
    * Used by background script to identify products needing classification
    *
@@ -156,7 +132,7 @@ export class MessageHandler {
         try {
           const products = await ProductManager.getUnsubmittedProducts()
           sendResponse(products)
-          ErrorHandler.logInfo(
+          Logger.info(
             'Content',
             `Sent ${products.length} unsubmitted products to background`,
           )
@@ -189,7 +165,7 @@ export class MessageHandler {
           const products =
             await ProductManager.getSubmittedUnprocessedProducts()
           sendResponse(products)
-          ErrorHandler.logInfo(
+          Logger.info(
             'Content',
             `Sent ${products.length} submitted unprocessed products to background`,
           )
@@ -215,7 +191,7 @@ export class MessageHandler {
             data.externalIds,
           )
           sendResponse({ success: true, result: data.externalIds })
-          ErrorHandler.logInfo(
+          Logger.info(
             'Content',
             `Reset submitted_at for ${data.externalIds} missing products`,
           )
@@ -251,7 +227,7 @@ export class MessageHandler {
             data.externalIds,
           )
           sendResponse(products)
-          ErrorHandler.logInfo(
+          Logger.info(
             'Content',
             `Sent ${products.length} products by external IDs to background`,
           )
@@ -291,7 +267,7 @@ export class MessageHandler {
           await ProductManager.updateStatuses(data)
           await this.fodmapHelper.updatePageStyles()
           sendResponse({ success: true })
-          ErrorHandler.logInfo(
+          Logger.info(
             'Content',
             `Updated ${data.length} product statuses and refreshed styles`,
           )
@@ -342,7 +318,7 @@ export class MessageHandler {
           }
 
           sendResponse(statistics)
-          ErrorHandler.logInfo(
+          Logger.info(
             'Content',
             `Sent statistics to popup: ${statistics.total} total, ${statistics.lowFodmap} low FODMAP`,
           )

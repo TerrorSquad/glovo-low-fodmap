@@ -1,3 +1,4 @@
+import { ErrorHandler } from '../shared/ErrorHandler'
 import { Logger } from '../shared/Logger'
 import { MetricsCollector } from '../shared/MetricsCollector'
 import { type Product } from '../shared/types/glovo'
@@ -163,11 +164,11 @@ export class DomProductScanner {
       Logger.info('DomProductScanner', 'Starting page scan for product cards')
 
       // Debug: Log page readiness
-      Logger.info(
+      Logger.debug(
         'DomProductScanner',
         '🔍 DOM Debug: Document ready state: ' + document.readyState,
       )
-      Logger.info(
+      Logger.debug(
         'DomProductScanner',
         '🔍 DOM Debug: Body children count: ' + document.body.children.length,
       )
@@ -176,14 +177,14 @@ export class DomProductScanner {
       const productElements = DomProductScanner.findProductElements()
       result.scannedElements = productElements.length
 
-      Logger.info(
+      Logger.debug(
         'DomProductScanner',
         `Found ${productElements.length} potential product elements`,
       )
 
       // Debug: If no elements found, let's see what's actually on the page
       if (productElements.length === 0) {
-        Logger.info(
+        Logger.debug(
           'DomProductScanner',
           '🔍 DOM Debug: No product elements found. Checking page structure...',
         )
@@ -210,13 +211,13 @@ export class DomProductScanner {
         for (const selector of containers) {
           const elements = document.querySelectorAll(selector)
           if (elements.length > 0) {
-            Logger.info(
+            Logger.debug(
               'DomProductScanner',
               `🔍 DOM Debug: Found ${elements.length} elements for "${selector}"`,
             )
             if (elements.length <= 5) {
               elements.forEach((el, i) => {
-                Logger.info(
+                Logger.debug(
                   'DomProductScanner',
                   `  Element ${i}: ${el.tagName} ${el.className} ${el.id}`,
                 )
@@ -227,7 +228,7 @@ export class DomProductScanner {
 
         // Log a sample of all elements with classes
         const allElementsWithClasses = document.querySelectorAll('[class]')
-        Logger.info(
+        Logger.debug(
           'DomProductScanner',
           `🔍 DOM Debug: Total elements with classes: ${allElementsWithClasses.length}`,
         )
@@ -236,7 +237,7 @@ export class DomProductScanner {
         Array.from(allElementsWithClasses)
           .slice(0, 10)
           .forEach((el, i) => {
-            Logger.info(
+            Logger.debug(
               'DomProductScanner',
               `  Sample ${i}: ${el.tagName} ${el.className.split(' ').slice(0, 3).join(' ')}`,
             )
@@ -277,7 +278,13 @@ export class DomProductScanner {
     } catch (error) {
       const errorMsg = `Page scan failed: ${error instanceof Error ? error.message : String(error)}`
       result.errors.push(errorMsg)
-      Logger.error('DomProductScanner', errorMsg, error)
+      ErrorHandler.logError('DomProductScanner', error, {
+        context: 'Page scan',
+        metadata: {
+          scannedElements: result.scannedElements,
+          extractedProducts: result.extractedProducts,
+        },
+      })
 
       MetricsCollector.record('dom.scan.error', 1, { error: errorMsg })
     }
@@ -290,16 +297,16 @@ export class DomProductScanner {
   /**
    * Scans a specific DOM container for product cards
    * More targeted scanning for specific page sections or dynamically added content
-   * 
+   *
    * @param container - DOM element to search within for product cards
    * @returns ProductScanResult containing products found within the container
-   * 
+   *
    * Use cases:
    * - Scanning newly added content sections
    * - Processing specific page areas (e.g., recommendation widgets)
    * - Handling incremental content loading scenarios
    * - Mutation observer callbacks for targeted updates
-   * 
+   *
    * More efficient than full page scans when you know the specific
    * area that contains new or updated product information.
    */
@@ -369,7 +376,13 @@ export class DomProductScanner {
     } catch (error) {
       const errorMsg = `Container scan failed: ${error instanceof Error ? error.message : String(error)}`
       result.errors.push(errorMsg)
-      Logger.error('DomProductScanner', errorMsg, error)
+      ErrorHandler.logError('DomProductScanner', error, {
+        context: 'Container scan',
+        metadata: {
+          containerTag: container.tagName,
+          containerClass: container.className,
+        },
+      })
     }
 
     return result
@@ -382,7 +395,7 @@ export class DomProductScanner {
     const elements: Element[] = []
     const seen = new Set<Element>()
 
-    Logger.info(
+    Logger.debug(
       'DomProductScanner',
       '🔍 DOM Debug: Searching for product elements...',
     )
@@ -390,7 +403,7 @@ export class DomProductScanner {
     for (const selector of DomProductScanner.PRODUCT_SELECTORS) {
       try {
         const found = document.querySelectorAll(selector)
-        Logger.info(
+        Logger.debug(
           'DomProductScanner',
           `🔍 DOM Debug: Selector "${selector}" found ${found.length} elements`,
         )
@@ -399,7 +412,7 @@ export class DomProductScanner {
           if (!seen.has(element)) {
             elements.push(element)
             seen.add(element)
-            Logger.info(
+            Logger.debug(
               'DomProductScanner',
               `  ✅ Added element: ${element.tagName} ${element.className.split(' ').slice(0, 2).join(' ')}`,
             )
@@ -414,7 +427,7 @@ export class DomProductScanner {
 
     // If no elements found with our selectors, try more generic approaches
     if (elements.length === 0) {
-      Logger.info(
+      Logger.debug(
         'DomProductScanner',
         '🔍 DOM Debug: No elements found with specific selectors, trying broader search...',
       )
@@ -444,7 +457,7 @@ export class DomProductScanner {
       for (const selector of broadSelectors) {
         try {
           const found = document.querySelectorAll(selector)
-          Logger.info(
+          Logger.debug(
             'DomProductScanner',
             `🔍 DOM Debug: Broad selector "${selector}" found ${found.length} elements`,
           )
@@ -500,7 +513,7 @@ export class DomProductScanner {
                 ) {
                   elements.push(element)
                   seen.add(element)
-                  Logger.info(
+                  Logger.debug(
                     'DomProductScanner',
                     `  ✅ Added broad element: ${element.tagName} ${element.className.split(' ').slice(0, 2).join(' ')}`,
                   )
@@ -715,23 +728,23 @@ export class DomProductScanner {
   /**
    * Sets up a MutationObserver to detect dynamically added product cards
    * Enables real-time detection of new products as they're loaded via AJAX or navigation
-   * 
+   *
    * @param callback - Function called when new products are detected
    * @returns MutationObserver instance for lifecycle management
-   * 
+   *
    * Observer capabilities:
    * - Detects new DOM nodes added to the page
    * - Identifies product cards within added content
    * - Extracts product data from newly discovered elements
    * - Handles both direct product additions and container additions
    * - Debounces rapid changes to avoid excessive processing
-   * 
+   *
    * Monitoring strategy:
    * 1. Watches for childList mutations across the document
    * 2. Checks if added nodes are product cards or contain product cards
    * 3. Extracts product data from valid discoveries
    * 4. Invokes callback with discovered products
-   * 
+   *
    * Essential for single-page applications where content loads dynamically
    * without full page refreshes (like Glovo's infinite scroll and filtering).
    */

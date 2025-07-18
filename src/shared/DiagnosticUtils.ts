@@ -1,4 +1,5 @@
 import { Config } from './Config'
+import { ErrorHandler } from './ErrorHandler'
 import { ExtensionTester } from './ExtensionTester'
 import { FeatureFlags } from './FeatureFlags'
 import { HealthMonitor, type SystemHealth } from './HealthMonitor'
@@ -199,7 +200,9 @@ export class DiagnosticUtils {
 
       Logger.info('Diagnostics', 'Diagnostic report downloaded')
     } catch (error) {
-      Logger.error('Diagnostics', 'Failed to download diagnostic report', error)
+      ErrorHandler.logError('Diagnostics', error, {
+        context: 'Downloading diagnostic report',
+      })
     }
   }
 
@@ -218,11 +221,9 @@ export class DiagnosticUtils {
       Logger.info('Diagnostics', 'Diagnostic report copied to clipboard')
       return true
     } catch (error) {
-      Logger.error(
-        'Diagnostics',
-        'Failed to copy diagnostic report to clipboard',
-        error,
-      )
+      ErrorHandler.logError('Diagnostics', error, {
+        context: 'Copying diagnostic report to clipboard',
+      })
       return false
     }
   }
@@ -344,7 +345,9 @@ export class DiagnosticUtils {
         }
       })
     } catch (error) {
-      Logger.error('Diagnostics', 'Test execution failed', error)
+      ErrorHandler.logError('Diagnostics', error, {
+        context: 'Running extension tests',
+      })
     }
   }
 
@@ -355,7 +358,9 @@ export class DiagnosticUtils {
     try {
       return await ExtensionTester.quickHealthCheck()
     } catch (error) {
-      Logger.error('Diagnostics', 'Quick test failed', error)
+      ErrorHandler.logError('Diagnostics', error, {
+        context: 'Running quick test',
+      })
       return false
     }
   }
@@ -386,7 +391,9 @@ export class DiagnosticUtils {
 
       Logger.info('Diagnostics', 'Test report downloaded')
     } catch (error) {
-      Logger.error('Diagnostics', 'Failed to download test report', error)
+      ErrorHandler.logError('Diagnostics', error, {
+        context: 'Downloading test report',
+      })
     }
   }
 }

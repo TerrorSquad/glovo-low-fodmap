@@ -1,4 +1,5 @@
 import { ErrorHandler } from '../shared/ErrorHandler'
+import { Logger } from '../shared/Logger'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import { SyncOrchestrator } from './SyncOrchestrator'
 
@@ -57,7 +58,7 @@ export class BackgroundMessageHandler {
 
             default: {
               const errorMsg = `Unknown message action: ${message.action}`
-              ErrorHandler.logWarning('Background', errorMsg)
+              Logger.warn('Background', errorMsg)
               return { success: false, error: errorMsg }
             }
           }
@@ -75,21 +76,21 @@ export class BackgroundMessageHandler {
   }
 
   private handleManualSync(): void {
-    ErrorHandler.logInfo('Background', 'Received manual sync request')
+    Logger.info('Background', 'Received manual sync request')
     this.syncOrchestrator.syncWithApi()
   }
 
   private handleNewProducts(message: BackgroundMessage): void {
     const newProductIds = message.data?.newProductIds
     if (!newProductIds || newProductIds.length === 0) {
-      ErrorHandler.logWarning(
+      Logger.warn(
         'Background',
         'Received newProductsFound message without product IDs',
       )
       return
     }
 
-    ErrorHandler.logInfo(
+    Logger.info(
       'Background',
       `Received ${newProductIds.length} new products, syncing specific products`,
     )
@@ -97,7 +98,7 @@ export class BackgroundMessageHandler {
   }
 
   private handlePollStatus(): void {
-    ErrorHandler.logInfo('Background', 'Manual status poll requested')
+    Logger.info('Background', 'Manual status poll requested')
     this.syncOrchestrator
       .forcePollStatus()
       .then(async (pollResult) => {

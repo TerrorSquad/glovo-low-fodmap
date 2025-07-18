@@ -1,5 +1,6 @@
 import { DiagnosticUtils } from '../shared/DiagnosticUtils'
 import { ErrorHandler } from '../shared/ErrorHandler'
+import { Logger } from '../shared/Logger'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 
 /**
@@ -91,7 +92,7 @@ export class PopupController {
         await this.loadSettings()
         await this.loadStatistics()
         this.setupEventListeners()
-        ErrorHandler.logInfo('Popup', 'Popup initialized successfully')
+        Logger.info('Popup', 'Popup initialized successfully')
       } catch (error) {
         ErrorHandler.logError('Popup', error, {
           context: 'Popup initialization',
@@ -149,7 +150,7 @@ export class PopupController {
             response.total?.toString() || '0'
           this.lowFodmapCountElement.textContent =
             response.lowFodmap?.toString() || '0'
-          ErrorHandler.logInfo(
+          Logger.info(
             'Popup',
             `Statistics loaded: ${response.total || 0} total, ${response.lowFodmap || 0} low FODMAP`,
           )
@@ -197,7 +198,7 @@ export class PopupController {
 
       // Save setting to storage
       chrome.storage.sync.set({ hideNonLowFodmap })
-      ErrorHandler.logInfo(
+      Logger.info(
         'Popup',
         `Toggle changed: hideNonLowFodmap = ${hideNonLowFodmap}`,
       )
@@ -220,10 +221,7 @@ export class PopupController {
 
       // Save setting to storage
       chrome.storage.sync.set({ darkMode: isDarkMode })
-      ErrorHandler.logInfo(
-        'Popup',
-        `Dark mode changed: darkMode = ${isDarkMode}`,
-      )
+      Logger.info('Popup', `Dark mode changed: darkMode = ${isDarkMode}`)
 
       // Apply dark mode immediately
       this.applyDarkMode(isDarkMode)
@@ -243,7 +241,7 @@ export class PopupController {
 
       // Save setting to storage
       chrome.storage.sync.set({ tooltipFontSize: fontSize })
-      ErrorHandler.logInfo('Popup', `Tooltip font size changed: ${fontSize}px`)
+      Logger.info('Popup', `Tooltip font size changed: ${fontSize}px`)
 
       // Send message to content script to update CSS
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -277,7 +275,7 @@ export class PopupController {
       this.updateStatus('Syncing unsubmitted products...', 'warning')
       this.syncButton.disabled = true
 
-      ErrorHandler.logInfo('Popup', 'Sync products button clicked')
+      Logger.info('Popup', 'Sync products button clicked')
       chrome.runtime.sendMessage({ action: 'syncWithApi' })
 
       // Wait a moment then refresh statistics
@@ -303,7 +301,7 @@ export class PopupController {
       this.updateStatus('Polling status...', 'warning')
       this.pollStatusButton.disabled = true
 
-      ErrorHandler.logInfo('Popup', 'Poll status button clicked')
+      Logger.info('Popup', 'Poll status button clicked')
       chrome.runtime.sendMessage({ action: 'pollStatus' })
 
       // Wait a moment then refresh statistics
@@ -331,15 +329,9 @@ export class PopupController {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs[0]?.id) {
           chrome.tabs.sendMessage(tabs[0].id, message)
-          ErrorHandler.logInfo(
-            'Popup',
-            `Sent message to tab: ${message.action}`,
-          )
+          Logger.info('Popup', `Sent message to tab: ${message.action}`)
         } else {
-          ErrorHandler.logWarning(
-            'Popup',
-            'No active tab found to send message',
-          )
+          Logger.warn('Popup', 'No active tab found to send message')
         }
       })
     } catch (error) {
@@ -454,7 +446,7 @@ export class PopupController {
 
       // Save setting to storage
       chrome.storage.sync.set({ hideNonFoodItems })
-      ErrorHandler.logInfo(
+      Logger.info(
         'Popup',
         `Hide non-food toggle changed: hideNonFoodItems = ${hideNonFoodItems}`,
       )

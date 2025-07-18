@@ -90,10 +90,6 @@ export class Config {
       issues.push('Sync retry delay should be at least 1 second (1000ms)')
     }
 
-    if (Config.SYNC_BATCH_SIZE < 1 || Config.SYNC_BATCH_SIZE > 100) {
-      issues.push('Sync batch size should be between 1 and 100')
-    }
-
     if (issues.length > 0) {
       ErrorHandler.logWarning('Config', 'Configuration issues found:', {
         issues,

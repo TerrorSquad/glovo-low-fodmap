@@ -7,6 +7,8 @@ export interface InjectedProductData {
   category: string
   status: FodmapStatus
   price?: number
+  explanation?: string // Serbian language explanation of why product has this FODMAP status
+  isFood?: boolean // Whether this product is food or not
 }
 
 export interface ChromeMessage {
@@ -15,6 +17,7 @@ export interface ChromeMessage {
   data?: any
   hide?: boolean
   hideNonLowFodmap?: boolean
+  hideNonFoodItems?: boolean
 }
 
 export interface LogPayload {

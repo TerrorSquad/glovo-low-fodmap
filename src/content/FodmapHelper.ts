@@ -22,6 +22,8 @@ import { StorageManager } from './StorageManager'
 export class FodmapHelper implements IFodmapHelper {
   /** Controls whether non-low-FODMAP products should be hidden */
   private hideNonLowFodmap = false
+  /** Controls whether non-food items should be hidden */
+  private hideNonFoodItems = false
   /** Handles Chrome extension messaging */
   private messageHandler: MessageHandler
   /** Timer for periodic product scanning */
@@ -103,13 +105,26 @@ export class FodmapHelper implements IFodmapHelper {
   }
 
   /**
+   * Sets the hide non-food items preference and triggers UI update
+   * Controls whether products marked as non-food should be hidden from view
+   *
+   * @param hide - Whether to hide non-food items
+   */
+  setHideNonFoodItems(hide: boolean): void {
+    this.hideNonFoodItems = hide
+  }
+
+  /**
    * Updates visual styling of all product cards on the page.
    * Applies FODMAP indicators and visibility based on user preferences.
    * Called after classification updates or setting changes.
    */
   async updatePageStyles(): Promise<void> {
     ;(await ErrorBoundary.protect(async () => {
-      await CardManager.updateAllCards(this.hideNonLowFodmap)
+      await CardManager.updateAllCards(
+        this.hideNonLowFodmap,
+        this.hideNonFoodItems,
+      )
     }, 'update-styles')) ?? Promise.resolve()
   }
 
@@ -156,8 +171,8 @@ export class FodmapHelper implements IFodmapHelper {
 
   /**
    * Loads user preferences from storage
-   * Currently loads the "hide non-low FODMAP" setting which controls
-   * whether high/unknown FODMAP products should be visually hidden
+   * Currently loads the "hide non-low FODMAP" and "hide non-food items" settings which control
+   * whether high/unknown FODMAP products and non-food items should be visually hidden
    *
    * @returns Promise that resolves when settings are loaded and applied to instance
    *
@@ -165,6 +180,7 @@ export class FodmapHelper implements IFodmapHelper {
    */
   private async loadSettings(): Promise<void> {
     this.hideNonLowFodmap = await StorageManager.getHideNonLowFodmap()
+    this.hideNonFoodItems = await StorageManager.getHideNonFoodItems()
   }
 
   /**

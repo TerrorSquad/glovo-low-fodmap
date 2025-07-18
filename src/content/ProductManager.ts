@@ -104,6 +104,16 @@ export class ProductManager {
                 localProduct.processedAt = apiProduct.processedAt
               }
 
+              // Update explanation if provided
+              if (apiProduct.explanation !== undefined) {
+                localProduct.explanation = apiProduct.explanation
+              }
+
+              // Update isFood if provided
+              if (apiProduct.isFood !== undefined) {
+                localProduct.isFood = apiProduct.isFood
+              }
+
               finalUpdates.push(localProduct)
             }
           }

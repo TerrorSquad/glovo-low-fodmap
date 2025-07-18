@@ -11,6 +11,7 @@
  *
  * Current settings managed:
  * - hideNonLowFodmap: Controls visibility of non-low-FODMAP products
+ * - hideNonFoodItems: Controls visibility of non-food items
  *
  * Uses Chrome sync storage for automatic cross-device synchronization,
  * ensuring user preferences are maintained across all their Chrome browsers.
@@ -45,6 +46,34 @@ export class StorageManager {
   static async setHideNonLowFodmap(hide: boolean): Promise<void> {
     return new Promise((resolve) => {
       chrome.storage.sync.set({ hideNonLowFodmap: hide }, () => {
+        resolve()
+      })
+    })
+  }
+
+  /**
+   * Retrieves the "hide non-food items" preference from Chrome storage.
+   * This setting controls whether non-food products should be hidden from view.
+   *
+   * @returns Promise that resolves to true if non-food items should be hidden
+   */
+  static async getHideNonFoodItems(): Promise<boolean> {
+    return new Promise((resolve) => {
+      chrome.storage.sync.get({ hideNonFoodItems: false }, (data) => {
+        resolve(!!data.hideNonFoodItems)
+      })
+    })
+  }
+
+  /**
+   * Saves the "hide non-food items" preference to Chrome storage.
+   * This setting persists across browser sessions and syncs between devices.
+   *
+   * @param hide - True to hide non-food items, false to show all items
+   */
+  static async setHideNonFoodItems(hide: boolean): Promise<void> {
+    return new Promise((resolve) => {
+      chrome.storage.sync.set({ hideNonFoodItems: hide }, () => {
         resolve()
       })
     })

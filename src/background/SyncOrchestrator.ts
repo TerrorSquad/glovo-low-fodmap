@@ -346,6 +346,8 @@ export class SyncOrchestrator {
                   processedAt: apiProduct.processedAt
                     ? new Date(apiProduct.processedAt)
                     : new Date(),
+                  explanation: apiProduct.explanation, // Serbian explanation of FODMAP status
+                  isFood: apiProduct.isFood, // Whether product is food or not
                 } as Product
               })
               .filter((product): product is Product => product !== null)
@@ -408,6 +410,8 @@ export class SyncOrchestrator {
               processedAt: apiProduct.processedAt
                 ? new Date(apiProduct.processedAt)
                 : new Date(),
+              explanation: apiProduct.explanation, // Serbian explanation of FODMAP status
+              isFood: apiProduct.isFood, // Whether product is food or not
             } as Product
           })
           .filter((product): product is Product => product !== null)

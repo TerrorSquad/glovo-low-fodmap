@@ -151,6 +151,19 @@
       0 0.5rem 1rem rgba(220, 38, 38, 0.35);
   }
 
+  .fodmap-badge-moderate {
+    background-color: #f59e0b;
+    box-shadow:
+      0 0.125rem 0.5rem rgba(0, 0, 0, 0.15),
+      0 0.25rem 0.75rem rgba(245, 158, 11, 0.25);
+  }
+
+  .fodmap-badge-moderate:hover {
+    box-shadow:
+      0 0.25rem 0.75rem rgba(0, 0, 0, 0.2),
+      0 0.5rem 1rem rgba(245, 158, 11, 0.35);
+  }
+
   .fodmap-badge-unknown {
     background-color: #6b7280;
     box-shadow:
@@ -192,5 +205,134 @@
 
   .fodmap-card-hidden {
     display: none;
+  }
+
+  /* Custom FODMAP Tooltip */
+  .fodmap-tooltip {
+    position: fixed;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.95),
+      rgba(0, 0, 0, 0.85)
+    );
+    color: white;
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 280px;
+    min-width: 200px;
+    z-index: 2147483647;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px) scale(0.95);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow:
+      0 10px 25px rgba(0, 0, 0, 0.5),
+      0 4px 12px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    /* Complete isolation from any parent styling */
+    filter: none !important;
+    transform-origin: center !important;
+  }
+
+  .fodmap-tooltip::after {
+    content: "";
+    position: absolute;
+    bottom: -8px;
+    left: 20px;
+    border: 8px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.95);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  }
+
+  .fodmap-tooltip-visible {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) scale(1) !important;
+    z-index: 2147483647 !important;
+    filter: none !important;
+  }
+
+  .fodmap-tooltip-title {
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #ffffff;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+  }
+
+  .fodmap-tooltip-explanation {
+    color: #e5e7eb;
+    font-size: 12px;
+    line-height: 1.4;
+    font-weight: 400;
+  }
+
+  /* Tooltip positioned below the badge */
+  .fodmap-tooltip-below::after {
+    bottom: auto;
+    top: -8px;
+    border-top-color: transparent;
+    border-bottom-color: rgba(0, 0, 0, 0.95);
+  }
+
+  .dark .fodmap-tooltip-below::after {
+    border-bottom-color: rgba(255, 255, 255, 0.95);
+  }
+
+  /* Dark mode support */
+  .dark .fodmap-tooltip {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(255, 255, 255, 0.92)
+    );
+    box-shadow:
+      0 10px 25px rgba(0, 0, 0, 0.15),
+      0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .fodmap-tooltip::after {
+    border-top-color: rgba(255, 255, 255, 0.98);
+  }
+
+  .dark .fodmap-tooltip-title {
+    color: #1f2937;
+  }
+
+  .dark .fodmap-tooltip-explanation {
+    color: #4b5563;
+  }
+
+  /* Responsive positioning for smaller screens */
+  @media (max-width: 640px) {
+    .fodmap-tooltip {
+      right: -150px;
+      left: -150px;
+      max-width: 300px;
+      text-align: center;
+    }
+
+    .fodmap-tooltip::after {
+      right: 50%;
+      transform: translateX(50%);
+    }
+  }
+
+  /* Enhanced badge hover when tooltip is available */
+  .fodmap-badge[data-has-tooltip="true"] {
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .fodmap-badge[data-has-tooltip="true"]:hover {
+    transform: scale(1.1);
+    box-shadow:
+      0 0.25rem 0.75rem rgba(0, 0, 0, 0.2),
+      0 0.5rem 1rem var(--badge-shadow-color, rgba(0, 0, 0, 0.15));
   }
 }

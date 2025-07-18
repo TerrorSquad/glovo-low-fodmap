@@ -22,10 +22,12 @@ type StatusResponse = {
     externalId: string
     name: string
     category: string
-    status: 'LOW' | 'HIGH' | 'UNKNOWN' | 'PENDING'
+    status: 'LOW' | 'MODERATE' | 'HIGH' | 'UNKNOWN' | 'PENDING'
     createdAt: string
     updatedAt: string
     processedAt?: string
+    explanation?: string // Serbian language explanation of why product has this FODMAP status
+    isFood?: boolean // Whether this product is food or not
   }>
   found: number
   missing: number

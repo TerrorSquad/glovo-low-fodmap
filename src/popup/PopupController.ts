@@ -7,6 +7,7 @@ import { PerformanceMonitor } from '../shared/PerformanceMonitor'
  */
 export class PopupController {
   private toggleSwitch: HTMLInputElement
+  private hideNonFoodToggle: HTMLInputElement
   private darkModeToggle: HTMLInputElement
   private syncButton: HTMLButtonElement
   private pollStatusButton: HTMLButtonElement
@@ -25,6 +26,9 @@ export class PopupController {
     // Core elements
     this.toggleSwitch = document.getElementById(
       'hideNonLowFodmap',
+    ) as HTMLInputElement
+    this.hideNonFoodToggle = document.getElementById(
+      'hideNonFoodItems',
     ) as HTMLInputElement
     this.darkModeToggle = document.getElementById(
       'darkModeToggle',
@@ -62,6 +66,7 @@ export class PopupController {
 
     if (
       !this.toggleSwitch ||
+      !this.hideNonFoodToggle ||
       !this.darkModeToggle ||
       !this.syncButton ||
       !this.pollStatusButton
@@ -89,9 +94,10 @@ export class PopupController {
     return await ErrorHandler.safeExecute(async () => {
       return new Promise<void>((resolve) => {
         chrome.storage.sync.get(
-          { hideNonLowFodmap: false, darkMode: false },
+          { hideNonLowFodmap: false, hideNonFoodItems: false, darkMode: false },
           (data) => {
             this.toggleSwitch.checked = data.hideNonLowFodmap
+            this.hideNonFoodToggle.checked = data.hideNonFoodItems
             this.darkModeToggle.checked = data.darkMode
             this.applyDarkMode(data.darkMode)
             resolve()
@@ -143,6 +149,10 @@ export class PopupController {
 
   private setupEventListeners(): void {
     this.toggleSwitch.addEventListener('change', this.handleToggleChange)
+    this.hideNonFoodToggle.addEventListener(
+      'change',
+      this.handleHideNonFoodToggle,
+    )
     this.darkModeToggle.addEventListener('change', this.handleDarkModeToggle)
     this.syncButton.addEventListener('click', this.handleSyncClick)
     this.pollStatusButton.addEventListener('click', this.handlePollStatusClick)
@@ -384,6 +394,29 @@ export class PopupController {
     // T: Diagnostics (changed from D to avoid conflict with dark mode)
     if (event.key === 't' && !event.ctrlKey && !event.metaKey) {
       this.handleDiagnostics()
+    }
+  }
+
+  private handleHideNonFoodToggle = (): void => {
+    try {
+      const hideNonFoodItems = this.hideNonFoodToggle.checked
+
+      // Save setting to storage
+      chrome.storage.sync.set({ hideNonFoodItems })
+      ErrorHandler.logInfo(
+        'Popup',
+        `Hide non-food toggle changed: hideNonFoodItems = ${hideNonFoodItems}`,
+      )
+
+      // Send message to content script to update styles
+      this.sendMessageToActiveTab({
+        action: 'refreshStyles',
+        hideNonFoodItems,
+      })
+    } catch (error) {
+      ErrorHandler.logError('Popup', error, {
+        context: 'Hide non-food toggle handling',
+      })
     }
   }
 }

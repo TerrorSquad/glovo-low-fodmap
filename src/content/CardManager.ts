@@ -137,6 +137,7 @@ export class CardManager {
    * Coordinates between database lookups and visual styling application
    *
    * @param hideNonLowFodmap - Whether to hide products that are not LOW FODMAP
+   * @param hideNonFoodItems - Whether to hide products that are not food
    * @returns Promise that resolves when all card updates are complete
    *
    * Performance optimizations:
@@ -155,7 +156,10 @@ export class CardManager {
    * Called by: FodmapHelper during periodic updates, setting changes,
    * and after new FODMAP classifications are received
    */
-  static async updateAllCards(hideNonLowFodmap: boolean): Promise<void> {
+  static async updateAllCards(
+    hideNonLowFodmap: boolean,
+    hideNonFoodItems: boolean = false,
+  ): Promise<void> {
     return await PerformanceMonitor.measureAsync(
       'updateAllCards',
       async () => {
@@ -176,9 +180,16 @@ export class CardManager {
             if (product) {
               const currentStatus = card.dataset.fodmapStatus
 
-              // Determine visibility: hide only if user wants to hide AND product is not LOW
-              const shouldBeHidden =
-                product.status !== 'LOW' && hideNonLowFodmap
+              // Determine visibility based on both FODMAP status and food type
+              // Hide non-low FODMAP products only if they are food items
+              const shouldHideForFodmap =
+                product.status !== 'LOW' &&
+                hideNonLowFodmap &&
+                product.isFood !== false
+              const shouldHideForNonFood =
+                product.isFood === false && hideNonFoodItems
+              const shouldBeHidden = shouldHideForFodmap || shouldHideForNonFood
+
               const isCurrentlyHidden =
                 card.classList.contains('fodmap-card-hidden')
 
@@ -187,7 +198,7 @@ export class CardManager {
                 currentStatus !== product.status ||
                 isCurrentlyHidden !== shouldBeHidden
               ) {
-                StyleManager.applyToCard(card, product.status, shouldBeHidden)
+                StyleManager.applyToCard(card, product, shouldBeHidden)
                 changedCards++
               }
             }
@@ -195,14 +206,25 @@ export class CardManager {
 
           // Only log info message when there were changes
           if (changedCards > 0) {
+            const filterDescription = []
+            if (hideNonLowFodmap)
+              filterDescription.push('hiding non-LOW FODMAP food items')
+            if (hideNonFoodItems)
+              filterDescription.push('hiding non-food items')
+            const filterText =
+              filterDescription.length > 0
+                ? `(${filterDescription.join(', ')})`
+                : '(showing all)'
+
             ErrorHandler.logInfo(
               'Content',
-              `Updated styles for ${changedCards}/${allCards.length} cards (${hideNonLowFodmap ? 'hiding non-LOW' : 'showing all'})`,
+              `Updated styles for ${changedCards}/${allCards.length} cards ${filterText}`,
             )
           }
         } catch (error) {
           ErrorHandler.logError('Content', error, {
-            context: 'Card style update',
+            context: 'Updating all cards',
+            metadata: { hideNonLowFodmap, hideNonFoodItems },
           })
         }
       },

@@ -8,6 +8,7 @@ import { StorageManager } from './StorageManager'
 export interface IFodmapHelper {
   updatePageStyles(): Promise<void>
   setHideNonLowFodmap(hide: boolean): void
+  setHideNonFoodItems(hide: boolean): void
 }
 
 /**
@@ -325,23 +326,30 @@ export class MessageHandler {
 
   /**
    * Handles style refresh requests with optional hide preference updates
-   * Updates both runtime state and persistent storage when hide preference is provided
+   * Updates both runtime state and persistent storage when hide preferences are provided
    *
-   * @param message - Chrome message containing optional hideNonLowFodmap preference
+   * @param message - Chrome message containing optional hideNonLowFodmap and hideNonFoodItems preferences
    *
    * Process:
-   * 1. Updates FodmapHelper runtime preference if provided
-   * 2. Persists setting to browser storage if provided
+   * 1. Updates FodmapHelper runtime preferences if provided
+   * 2. Persists settings to browser storage if provided
    * 3. Triggers immediate page style refresh to apply changes
    *
-   * Used when popup changes the hide preference or requests a general style refresh.
+   * Used when popup changes hide preferences or requests a general style refresh.
    */
   private async handleRefreshStyles(message: ChromeMessage): Promise<void> {
-    // Update hide preference if provided
+    // Update hide non-low FODMAP preference if provided
     if (typeof message.hideNonLowFodmap === 'boolean') {
       this.fodmapHelper.setHideNonLowFodmap(message.hideNonLowFodmap)
       // Save the setting to storage for persistence
       await StorageManager.setHideNonLowFodmap(message.hideNonLowFodmap)
+    }
+
+    // Update hide non-food items preference if provided
+    if (typeof message.hideNonFoodItems === 'boolean') {
+      this.fodmapHelper.setHideNonFoodItems(message.hideNonFoodItems)
+      // Save the setting to storage for persistence
+      await StorageManager.setHideNonFoodItems(message.hideNonFoodItems)
     }
 
     // Force update all cards to ensure visibility changes take effect

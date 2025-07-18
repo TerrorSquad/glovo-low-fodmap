@@ -1,9 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Glovo Low-FODMAP Helper",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Ističe Low-FODMAP proizvode i omogućava sakrivanje ostalih na Glovo prodavnicama.",
-  "permissions": ["storage", "alarms"],
+  "permissions": [
+    "storage",
+    "alarms"
+  ],
   "host_permissions": [
     "https://glovoapp.com/*",
     "https://glovo-fodmap-api.fly.dev/*"
@@ -17,12 +20,20 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://glovoapp.com/*"],
-      "js": ["src/content.ts"]
+      "matches": [
+        "https://glovoapp.com/*"
+      ],
+      "js": [
+        "src/content.ts"
+      ]
     },
     {
-      "matches": ["https://glovoapp.com/*"],
-      "js": ["src/injector.ts"],
+      "matches": [
+        "https://glovoapp.com/*"
+      ],
+      "js": [
+        "src/injector.ts"
+      ],
       "world": "MAIN"
     }
   ],

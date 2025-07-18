@@ -7,6 +7,15 @@ import { ProductManager } from './ProductManager'
 import { StorageManager } from './StorageManager'
 
 export interface IFodmapHelper {
+  /**
+   * Updates visual styling of all product cards on the page.
+   * Triggers after:
+   *   - Product status/classification changes (API/network events)
+   *   - User preference changes (hide/show toggles)
+   *   - DOM mutations (new products/cards detected)
+   *   - Initial DOM scan on page load
+   * Ensures UI always reflects latest product statuses and user settings.
+   */
   updatePageStyles(): Promise<void>
   setHideNonLowFodmap(hide: boolean): void
   setHideNonFoodItems(hide: boolean): void
@@ -35,6 +44,20 @@ export interface IFodmapHelper {
  * async response handling and error management.
  */
 export class MessageHandler {
+  /**
+   * UI Update Triggers (updatePageStyles):
+   *
+   * 1. Product status/classification changes:
+   *    - After API/network events update product statuses in DB (handleUpdateStatuses)
+   * 2. User preference changes:
+   *    - When user toggles hide/show settings in popup (handleRefreshStyles)
+   * 3. DOM mutations:
+   *    - When new products/cards are detected via mutation observer (handled in FodmapHelper)
+   * 4. Initial DOM scan:
+   *    - On page load, after scanning for existing products (handled in FodmapHelper)
+   *
+   * Always ensure updatePageStyles is called after any DB or DOM operation that affects product visibility/status.
+   */
   private fodmapHelper: IFodmapHelper
 
   constructor(fodmapHelper: IFodmapHelper) {
@@ -260,12 +283,13 @@ export class MessageHandler {
     data: Product[],
     sendResponse: (response?: any) => void,
   ): Promise<void> {
+    // Trigger UI update after DB product status/classification changes
     return await PerformanceMonitor.measureAsync(
       'handleUpdateStatuses',
       async () => {
         try {
           await ProductManager.updateStatuses(data)
-          await this.fodmapHelper.updatePageStyles()
+          await this.fodmapHelper.updatePageStyles() // UI update trigger
           sendResponse({ success: true })
           Logger.info(
             'Content',
@@ -346,6 +370,7 @@ export class MessageHandler {
    * Used when popup changes hide preferences or requests a general style refresh.
    */
   private async handleRefreshStyles(message: ChromeMessage): Promise<void> {
+    // UI update trigger: after user preference changes
     // Update hide non-low FODMAP preference if provided
     if (typeof message.hideNonLowFodmap === 'boolean') {
       this.fodmapHelper.setHideNonLowFodmap(message.hideNonLowFodmap)
@@ -361,6 +386,6 @@ export class MessageHandler {
     }
 
     // Force update all cards to ensure visibility changes take effect
-    await this.fodmapHelper.updatePageStyles()
+    await this.fodmapHelper.updatePageStyles() // UI update trigger
   }
 }

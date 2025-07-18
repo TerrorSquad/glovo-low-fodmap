@@ -28,10 +28,6 @@ export class FodmapHelper implements IFodmapHelper {
   private hideNonFoodItems = false
   /** Handles Chrome extension messaging */
   private messageHandler: MessageHandler
-  /** Timer for periodic product scanning */
-  private updateInterval?: number
-  /** Observes DOM changes to detect new products */
-  private mutationObserver?: MutationObserver
 
   /**
    * Initializes the FodmapHelper instance
@@ -75,8 +71,6 @@ export class FodmapHelper implements IFodmapHelper {
 
           // Setup mutation observer for dynamic content
           this.setupMutationObserver()
-
-          this.startPeriodicUpdate()
         },
         'content-init',
         {
@@ -218,18 +212,7 @@ export class FodmapHelper implements IFodmapHelper {
     }
   }
 
-  /**
-   * Starts periodic updates of page styling to maintain FODMAP indicators
-   * Updates every 1000ms to ensure styles remain consistent as page content changes
-   *
-   * Handles: Dynamic content loading, user interactions that modify DOM,
-   * and ensures FODMAP styling persists through page changes
-   */
-  private startPeriodicUpdate(): void {
-    this.updateInterval = window.setInterval(() => {
-      this.updatePageStyles()
-    }, 1000)
-  }
+  // Removed periodic interval; mutation observer now handles all dynamic updates
 
   /**
    * Debug helper - generates and logs comprehensive diagnostic report
@@ -370,29 +353,27 @@ export class FodmapHelper implements IFodmapHelper {
    * 3. Applies appropriate styling based on current settings
    */
   private setupMutationObserver(): void {
-    this.mutationObserver = DomProductScanner.setupMutationObserver(
-      async (products) => {
-        await ErrorBoundary.protect(async () => {
-          Logger.debug(
+    DomProductScanner.setupMutationObserver(async (products) => {
+      await ErrorBoundary.protect(async () => {
+        Logger.debug(
+          'FodmapHelper',
+          `🔍 FODMAP Helper: Detected ${products.length} new products via DOM changes`,
+        )
+
+        // Look up existing products in DB by name instead of creating new ones
+        const productNames = products.map((product) => product.name.trim())
+        const existingProducts =
+          await ProductManager.getProductsByNames(productNames)
+
+        if (existingProducts.length > 0) {
+          Logger.info(
             'FodmapHelper',
-            `🔍 FODMAP Helper: Detected ${products.length} new products via DOM changes`,
+            `📄 FODMAP Helper: Found ${existingProducts.length} new products in database`,
           )
-
-          // Look up existing products in DB by name instead of creating new ones
-          const productNames = products.map((product) => product.name.trim())
-          const existingProducts =
-            await ProductManager.getProductsByNames(productNames)
-
-          if (existingProducts.length > 0) {
-            Logger.info(
-              'FodmapHelper',
-              `📄 FODMAP Helper: Found ${existingProducts.length} new products in database`,
-            )
-            CardManager.tagVisibleCardsByName(existingProducts)
-            await this.updatePageStyles()
-          }
-        }, 'mutation-products')
-      },
-    )
+          CardManager.tagVisibleCardsByName(existingProducts)
+          await this.updatePageStyles()
+        }
+      }, 'mutation-products')
+    })
   }
 }

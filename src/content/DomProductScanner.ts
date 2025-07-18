@@ -573,24 +573,32 @@ export class DomProductScanner {
 
       // Parse price
       let price = 0
+      let currency = 'EUR' // Default currency
       if (priceText) {
-        const priceMatch = priceText.match(/[\d,]+\.?\d*/g)
+        // Attempt to extract currency symbol
+        const currencyMatch = priceText.match(/€|\$|USD|EUR/i)
+        if (currencyMatch) {
+          if (
+            currencyMatch[0].includes('$') ||
+            currencyMatch[0].includes('USD')
+          )
+            currency = 'USD'
+        }
+
+        // Clean the price string and parse the number
+        const cleanedPrice = priceText.replace(/[^\d,.]/g, '').replace(',', '.')
+        const priceMatch = cleanedPrice.match(/(\d+\.?\d*)$/)
         if (priceMatch) {
-          price = parseFloat(priceMatch[0].replace(',', '.')) || 0
+          price = parseFloat(priceMatch[0]) || 0
         }
       }
 
       // Create product object compatible with Glovo's Product interface
       const timestamp = Date.now()
-      const uniqueId =
-        productId ||
-        `dom-${index}-${timestamp}-${Math.random().toString(36).substr(2, 9)}`
+      const uniqueId = productId || `dom-${name.trim()}-${index}-${timestamp}`
 
       const product: Product = {
-        id: parseInt(
-          productId?.replace(/\D/g, '') || `${index}${timestamp}`.slice(-8),
-          10,
-        ),
+        id: DomProductScanner.simpleHash(uniqueId),
         externalId: uniqueId,
         storeProductId: productId || `store-${index}-${timestamp}`,
         name: name.trim(),
@@ -598,7 +606,7 @@ export class DomProductScanner {
         price: Math.round(price * 100), // Convert to cents
         priceInfo: {
           amount: Math.round(price * 100),
-          currencyCode: 'EUR',
+          currencyCode: currency,
           displayText: priceText || `€${price.toFixed(2)}`,
         },
         category: 'Scanned', // Default category for DOM-scanned products
@@ -637,6 +645,21 @@ export class DomProductScanner {
       )
       return null
     }
+  }
+
+  /**
+   * Creates a simple, non-cryptographic hash from a string to generate a numeric ID.
+   * @param str The string to hash.
+   * @returns A positive integer hash.
+   */
+  private static simpleHash(str: string): number {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i)
+      hash = (hash << 5) - hash + char
+      hash |= 0 // Convert to 32bit integer
+    }
+    return Math.abs(hash)
   }
 
   /**

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.1](https://github.com/TerrorSquad/glovo-low-fodmap/compare/v0.1.0...v0.1.1) (2025-07-18)
+
+
+### Bug Fixes
+
+* restructure release-please workflow to include build and upload steps ([a26bb89](https://github.com/TerrorSquad/glovo-low-fodmap/commit/a26bb89556f69663338b1528d2152d9ce8a59575))
+
 ## [0.1.0](https://github.com/TerrorSquad/glovo-low-fodmap/compare/v0.0.4...v0.1.0) (2025-07-18)
 
 

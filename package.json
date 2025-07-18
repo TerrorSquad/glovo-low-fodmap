@@ -1,6 +1,6 @@
 {
   "name": "glovo-fodmap-helper",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "background.js",
   "type": "module",
   "scripts": {
@@ -12,7 +12,9 @@
     "format": "biome format --write src",
     "prepare": "husky",
     "commit": "commit",
-    "biome": "biome"
+    "biome": "biome",
+    "release": "pnpm standard-version && pnpm postversion",
+    "postversion": "node scripts/sync-manifest-version.js && git add src/manifest.json && git commit --amend --no-edit --no-verify"
   },
   "keywords": [],
   "author": "Goran Ninković",

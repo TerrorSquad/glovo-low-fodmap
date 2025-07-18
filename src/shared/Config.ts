@@ -1,4 +1,3 @@
-import { ErrorHandler } from './ErrorHandler'
 import { Logger } from './Logger'
 
 /**

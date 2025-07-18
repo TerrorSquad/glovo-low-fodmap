@@ -207,28 +207,6 @@ export class DiagnosticUtils {
   }
 
   /**
-   * Copies diagnostic report to clipboard (browser only)
-   */
-  static async copyDiagnosticsToClipboard(): Promise<boolean> {
-    if (typeof navigator === 'undefined' || !navigator.clipboard) {
-      Logger.warn('Diagnostics', 'Clipboard not available')
-      return false
-    }
-
-    try {
-      const reportJson = await DiagnosticUtils.exportDiagnostics()
-      await navigator.clipboard.writeText(reportJson)
-      Logger.info('Diagnostics', 'Diagnostic report copied to clipboard')
-      return true
-    } catch (error) {
-      ErrorHandler.logError('Diagnostics', error, {
-        context: 'Copying diagnostic report to clipboard',
-      })
-      return false
-    }
-  }
-
-  /**
    * Quick health check with simplified output
    */
   static async quickHealthCheck(): Promise<string> {
@@ -242,34 +220,6 @@ export class DiagnosticUtils {
   static clearAllData(): void {
     MetricsCollector.clear()
     Logger.info('Diagnostics', 'All diagnostic data cleared')
-  }
-
-  /**
-   * Validates extension state
-   */
-  static async validateState(): Promise<{
-    isValid: boolean
-    issues: string[]
-  }> {
-    const issues: string[] = []
-
-    // Check configuration
-    const configValidation = FeatureFlags.validateConfiguration()
-    if (!configValidation.isValid) {
-      issues.push(...configValidation.issues)
-    }
-
-    // Check health
-    const health = await HealthMonitor.performHealthCheck()
-    const healthIssues = health.checks
-      .filter((c) => c.status === 'error')
-      .map((c) => `${c.component}: ${c.message}`)
-    issues.push(...healthIssues)
-
-    return {
-      isValid: issues.length === 0,
-      issues,
-    }
   }
 
   /**
@@ -362,38 +312,6 @@ export class DiagnosticUtils {
         context: 'Running quick test',
       })
       return false
-    }
-  }
-
-  /**
-   * Generates and downloads test report
-   */
-  static async downloadTestReport(): Promise<void> {
-    if (typeof document === 'undefined' || typeof window === 'undefined') {
-      Logger.warn('Diagnostics', 'Download not available in this context')
-      return
-    }
-
-    try {
-      Logger.info('Diagnostics', 'Generating test report...')
-      const report = await ExtensionTester.generateTestReport()
-
-      const blob = new Blob([report], { type: 'text/markdown' })
-      const url = URL.createObjectURL(blob)
-
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `extension-test-report-${Date.now()}.md`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-
-      Logger.info('Diagnostics', 'Test report downloaded')
-    } catch (error) {
-      ErrorHandler.logError('Diagnostics', error, {
-        context: 'Downloading test report',
-      })
     }
   }
 }

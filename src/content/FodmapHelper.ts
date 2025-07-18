@@ -258,23 +258,6 @@ export class FodmapHelper implements IFodmapHelper {
   }
 
   /**
-   * Cleanup method to properly dispose of resources when extension is disabled
-   * Clears intervals and disconnects observers to prevent memory leaks
-   *
-   * Called when: Extension is disabled, page unloads, or content script is removed
-   * Prevents: Memory leaks from running intervals and active DOM observers
-   */
-  destroy(): void {
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval)
-    }
-
-    if (this.mutationObserver) {
-      this.mutationObserver.disconnect()
-    }
-  }
-
-  /**
    * Performs initial DOM scan for products already on the page
    * Uses progressive retry strategy for Nuxt/SPA apps
    */

@@ -39,6 +39,9 @@ export class ApiInterceptor {
     }
   }
 
+  /**
+   * Confirmed to be used by Glovo to send API requests as of July 2025.
+   */
   private static setupXhrInterceptor(): void {
     const originalXhrOpen = XMLHttpRequest.prototype.open
     const originalXhrSend = XMLHttpRequest.prototype.send

@@ -178,34 +178,6 @@ export class ErrorBoundary {
   }
 
   /**
-   * Creates a resilient version of a function that automatically handles errors
-   */
-  static createResilientFunction<T extends any[], R>(
-    fn: (...args: T) => Promise<R>,
-    context: string,
-    options: ErrorBoundaryOptions = {},
-  ): (...args: T) => Promise<R | null> {
-    return async (...args: T): Promise<R | null> => {
-      return ErrorBoundary.protect(() => fn(...args), context, options)
-    }
-  }
-
-  /**
-   * Gets retry statistics for debugging
-   */
-  static getRetryStats(): Record<string, number> {
-    return Object.fromEntries(ErrorBoundary.retryCount.entries())
-  }
-
-  /**
-   * Clears retry statistics
-   */
-  static clearRetryStats(): void {
-    ErrorBoundary.retryCount.clear()
-    Logger.info('ErrorBoundary', 'Retry statistics cleared')
-  }
-
-  /**
    * Sets up default recovery strategies for common contexts
    */
   static setupDefaultRecoveryStrategies(): void {
@@ -356,7 +328,7 @@ export class ErrorBoundary {
       }
 
       // Check retry counts
-      const retryStats = ErrorBoundary.getRetryStats()
+      const retryStats = Object.fromEntries(ErrorBoundary.retryCount.entries())
       const highRetryContexts = Object.entries(retryStats).filter(
         ([, count]) => count >= 2,
       )

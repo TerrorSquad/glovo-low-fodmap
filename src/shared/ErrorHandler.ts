@@ -25,32 +25,4 @@ export class ErrorHandler {
       return fallback
     }
   }
-
-  static safeExecuteSync<T>(
-    operation: () => T,
-    context: string,
-    fallback?: T,
-  ): T | undefined {
-    try {
-      return operation()
-    } catch (error) {
-      ErrorHandler.logError(context, error)
-      return fallback
-    }
-  }
-
-  static createErrorBoundary<T extends unknown[], R>(
-    fn: (...args: T) => R,
-    context: string,
-    fallback?: R,
-  ): (...args: T) => R | undefined {
-    return (...args: T) => {
-      try {
-        return fn(...args)
-      } catch (error) {
-        ErrorHandler.logError(context, error, { args })
-        return fallback
-      }
-    }
-  }
 }

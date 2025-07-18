@@ -8,11 +8,7 @@ import { Logger } from './shared/Logger'
 const fodmapHelper = new FodmapHelper()
 fodmapHelper.init()
 
-// Check if we're in development mode by looking for localhost in manifest permissions
-const isDevelopment =
-  chrome.runtime
-    .getManifest()
-    .host_permissions?.includes('http://localhost/*') ?? false
+const isDevelopment = process.env.NODE_ENV === 'development'
 
 // Expose debugging utilities globally only in development mode
 if (isDevelopment) {

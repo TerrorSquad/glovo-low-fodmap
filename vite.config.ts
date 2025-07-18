@@ -2,9 +2,22 @@ import { crx } from '@crxjs/vite-plugin'
 import { defineConfig } from 'vite'
 import tailwindcss from 'tailwindcss'
 import manifest from './manifest.json'
+import pkg from './package.json'
 
+function generateManifest() {
+  if (process.env.NODE_ENV === 'development') {
+    // In development, use the local API endpoint
+    manifest.host_permissions.push('http://localhost/*')
+  }
+  return {
+    ...manifest,
+    name: pkg.name,
+    description: pkg.description,
+    version: pkg.version,
+  }
+}
 export default defineConfig({
-  plugins: [crx({ manifest })],
+  plugins: [crx({ manifest: generateManifest() })],
   build: {
     sourcemap: 'inline',
   },

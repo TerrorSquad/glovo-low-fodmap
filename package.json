@@ -1,11 +1,12 @@
 {
   "name": "glovo-fodmap-helper",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "main": "background.js",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "NODE_ENV=development vite build",
+    "build:prod": "NODE_ENV=production vite build",
     "preview": "vite preview",
     "lint": "biome lint --fix src",
     "format": "biome format --write src",
@@ -14,7 +15,7 @@
     "biome": "biome"
   },
   "keywords": [],
-  "author": "",
+  "author": "Goran Ninković",
   "license": "ISC",
   "description": "",
   "lint-staged": {

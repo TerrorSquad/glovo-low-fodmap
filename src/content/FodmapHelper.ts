@@ -66,6 +66,7 @@ export class FodmapHelper implements IFodmapHelper {
           ErrorBoundary.setupDefaultRecoveryStrategies()
           this.setupEventListeners()
           await this.loadSettings()
+          await this.loadTooltipFontSize()
 
           // Perform initial DOM scan for existing products
           await this.performInitialDomScan()
@@ -181,6 +182,34 @@ export class FodmapHelper implements IFodmapHelper {
   private async loadSettings(): Promise<void> {
     this.hideNonLowFodmap = await StorageManager.getHideNonLowFodmap()
     this.hideNonFoodItems = await StorageManager.getHideNonFoodItems()
+  }
+
+  /**
+   * Loads and applies the tooltip font size setting from storage
+   */
+  private async loadTooltipFontSize(): Promise<void> {
+    try {
+      const result = await chrome.storage.sync.get({ tooltipFontSize: 13 })
+      const fontSize = result.tooltipFontSize as number
+
+      // Apply font size by creating CSS style
+      const style = document.createElement('style')
+      style.id = 'fodmap-tooltip-font-size'
+      style.textContent = `
+        .fodmap-tooltip {
+          font-size: ${fontSize}px !important;
+        }
+        .fodmap-tooltip-title {
+          font-size: ${fontSize + 1}px !important;
+        }
+        .fodmap-tooltip-explanation {
+          font-size: ${fontSize - 1}px !important;
+        }
+      `
+      document.head.appendChild(style)
+    } catch (error) {
+      console.warn('Failed to load tooltip font size:', error)
+    }
   }
 
   /**

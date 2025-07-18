@@ -9,6 +9,8 @@ export class PopupController {
   private toggleSwitch: HTMLInputElement
   private hideNonFoodToggle: HTMLInputElement
   private darkModeToggle: HTMLInputElement
+  private tooltipFontSizeSlider: HTMLInputElement
+  private tooltipFontSizeValue: HTMLSpanElement
   private syncButton: HTMLButtonElement
   private pollStatusButton: HTMLButtonElement
   private statusIcon: HTMLElement
@@ -33,6 +35,12 @@ export class PopupController {
     this.darkModeToggle = document.getElementById(
       'darkModeToggle',
     ) as HTMLInputElement
+    this.tooltipFontSizeSlider = document.getElementById(
+      'tooltipFontSize',
+    ) as HTMLInputElement
+    this.tooltipFontSizeValue = document.getElementById(
+      'tooltipFontSizeValue',
+    ) as HTMLSpanElement
     this.syncButton = document.getElementById('syncButton') as HTMLButtonElement
     this.pollStatusButton = document.getElementById(
       'pollStatusButton',
@@ -68,6 +76,8 @@ export class PopupController {
       !this.toggleSwitch ||
       !this.hideNonFoodToggle ||
       !this.darkModeToggle ||
+      !this.tooltipFontSizeSlider ||
+      !this.tooltipFontSizeValue ||
       !this.syncButton ||
       !this.pollStatusButton
     ) {
@@ -94,12 +104,22 @@ export class PopupController {
     return await ErrorHandler.safeExecute(async () => {
       return new Promise<void>((resolve) => {
         chrome.storage.sync.get(
-          { hideNonLowFodmap: false, hideNonFoodItems: false, darkMode: false },
+          {
+            hideNonLowFodmap: false,
+            hideNonFoodItems: false,
+            darkMode: false,
+            tooltipFontSize: 13,
+          },
           (data) => {
             this.toggleSwitch.checked = data.hideNonLowFodmap
             this.hideNonFoodToggle.checked = data.hideNonFoodItems
             this.darkModeToggle.checked = data.darkMode
+            this.tooltipFontSizeSlider.value = data.tooltipFontSize.toString()
+            this.tooltipFontSizeValue.textContent = `${data.tooltipFontSize}px`
+
+            // Apply dark mode immediately
             this.applyDarkMode(data.darkMode)
+
             resolve()
           },
         )
@@ -154,6 +174,10 @@ export class PopupController {
       this.handleHideNonFoodToggle,
     )
     this.darkModeToggle.addEventListener('change', this.handleDarkModeToggle)
+    this.tooltipFontSizeSlider.addEventListener(
+      'input',
+      this.handleTooltipFontSizeChange,
+    )
     this.syncButton.addEventListener('click', this.handleSyncClick)
     this.pollStatusButton.addEventListener('click', this.handlePollStatusClick)
 
@@ -206,6 +230,33 @@ export class PopupController {
     } catch (error) {
       ErrorHandler.logError('Popup', error, {
         context: 'Dark mode toggle handling',
+      })
+    }
+  }
+
+  private handleTooltipFontSizeChange = (): void => {
+    try {
+      const fontSize = parseInt(this.tooltipFontSizeSlider.value, 10)
+
+      // Update display value
+      this.tooltipFontSizeValue.textContent = `${fontSize}px`
+
+      // Save setting to storage
+      chrome.storage.sync.set({ tooltipFontSize: fontSize })
+      ErrorHandler.logInfo('Popup', `Tooltip font size changed: ${fontSize}px`)
+
+      // Send message to content script to update CSS
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]?.id) {
+          chrome.tabs.sendMessage(tabs[0].id, {
+            action: 'updateTooltipFontSize',
+            fontSize,
+          })
+        }
+      })
+    } catch (error) {
+      ErrorHandler.logError('Popup', error, {
+        context: 'Tooltip font size change handling',
       })
     }
   }

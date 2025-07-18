@@ -82,3 +82,43 @@ if (isDevelopment) {
     methods: Object.keys(debugUtils),
   })
 }
+
+// Message listener for popup communications
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.action === 'updateTooltipFontSize') {
+    updateTooltipFontSize(message.fontSize)
+    sendResponse({ success: true })
+  }
+  return true // Keep message channel open for async response
+})
+
+/**
+ * Updates the font size of all FODMAP tooltips
+ */
+function updateTooltipFontSize(fontSize: number): void {
+  // Update CSS custom property for tooltip font size
+  const style = document.createElement('style')
+  style.id = 'fodmap-tooltip-font-size'
+
+  // Remove existing style if present
+  const existingStyle = document.getElementById('fodmap-tooltip-font-size')
+  if (existingStyle) {
+    existingStyle.remove()
+  }
+
+  style.textContent = `
+    .fodmap-tooltip {
+      font-size: ${fontSize}px !important;
+    }
+    .fodmap-tooltip-title {
+      font-size: ${fontSize + 1}px !important;
+    }
+    .fodmap-tooltip-explanation {
+      font-size: ${fontSize - 1}px !important;
+    }
+  `
+
+  document.head.appendChild(style)
+
+  Logger.info('Content', `Updated tooltip font size to ${fontSize}px`)
+}

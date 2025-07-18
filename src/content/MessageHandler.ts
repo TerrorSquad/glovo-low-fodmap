@@ -71,6 +71,12 @@ export class MessageHandler {
           case 'log':
             this.handleLogMessage(message.payload)
             break
+          case 'resetSubmittedAtForMissingProducts':
+            this.handleResetSubmittedAtForMissingProducts(
+              message.data,
+              sendResponse,
+            )
+            return true
 
           case 'getUnsubmittedProducts':
             this.handleGetUnsubmittedProducts(sendResponse)
@@ -192,6 +198,32 @@ export class MessageHandler {
             context: 'Getting submitted unprocessed products',
           })
           sendResponse([])
+        }
+      },
+    )
+  }
+
+  private async handleResetSubmittedAtForMissingProducts(
+    data: { externalIds: string[] },
+    sendResponse: (response?: any) => void,
+  ): Promise<void> {
+    return await PerformanceMonitor.measureAsync(
+      'handleResetSubmittedAtForMissingProducts',
+      async () => {
+        try {
+          await ProductManager.resetSubmittedAtForMissingProducts(
+            data.externalIds,
+          )
+          sendResponse({ success: true, result: data.externalIds })
+          ErrorHandler.logInfo(
+            'Content',
+            `Reset submitted_at for ${data.externalIds} missing products`,
+          )
+        } catch (error) {
+          ErrorHandler.logError('Content', error, {
+            context: 'Resetting submitted_at for missing products',
+          })
+          sendResponse({ success: false, error: (error as Error).message })
         }
       },
     )

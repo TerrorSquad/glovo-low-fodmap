@@ -208,6 +208,40 @@ export class ContentMessenger {
     )
   }
 
+  static async resetSubmittedAtForMissingProducts(
+    externalIds: string[],
+  ): Promise<void> {
+    return await PerformanceMonitor.measureAsync(
+      'resetSubmittedAtForMissingProducts',
+      async () => {
+        const tab = await ContentMessenger.findActiveGlovoTab()
+        if (!tab?.id) {
+          ErrorHandler.logWarning(
+            'Background',
+            'No active Glovo tab found for resetting submittedAt',
+          )
+          return
+        }
+
+        try {
+          await ContentMessenger.sendToContent(tab.id, {
+            action: 'resetSubmittedAtForMissingProducts',
+            data: { externalIds },
+          })
+          ErrorHandler.logInfo(
+            'Background',
+            `Reset submittedAt for ${externalIds.length} products`,
+          )
+        } catch (error) {
+          ErrorHandler.logError('Background', error, {
+            context: 'Resetting submittedAt for missing products',
+            metadata: { externalIds },
+          })
+        }
+      },
+    )
+  }
+
   /**
    * Sends log messages to content script for unified logging.
    * Allows background script logs to be forwarded to content script logger.

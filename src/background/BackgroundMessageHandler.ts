@@ -98,11 +98,24 @@ export class BackgroundMessageHandler {
 
   private handlePollStatus(): void {
     ErrorHandler.logInfo('Background', 'Manual status poll requested')
-    this.syncOrchestrator.forcePollStatus().catch((error) => {
-      ErrorHandler.logError('Background', error, {
-        context: 'Manual status polling',
+    this.syncOrchestrator
+      .forcePollStatus()
+      .then(async (pollResult) => {
+        if (
+          pollResult &&
+          Array.isArray(pollResult.missing_ids) &&
+          pollResult.missing_ids.length > 0
+        ) {
+          await this.syncOrchestrator.resetSubmittedAtForMissingProducts(
+            pollResult.missing_ids,
+          )
+        }
       })
-    })
+      .catch((error) => {
+        ErrorHandler.logError('Background', error, {
+          context: 'Manual status polling',
+        })
+      })
   }
 
   setupListener(): void {

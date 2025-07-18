@@ -1,9 +1,11 @@
 import { Config } from '../shared/Config'
 import type { Product } from '../shared/db'
+import { db } from '../shared/db'
 import { ErrorBoundary } from '../shared/ErrorBoundary'
 import { ErrorHandler } from '../shared/ErrorHandler'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import { ContentMessenger } from './ContentMessenger'
+import type { StatusResponse } from './FodmapApiClient'
 import { FodmapApiClient } from './FodmapApiClient'
 
 type SyncType = 'manual' | 'periodic'
@@ -84,8 +86,40 @@ export class SyncOrchestrator {
     return await this.performSpecificProductsSync(externalIds)
   }
 
-  async forcePollStatus(): Promise<void> {
+  async forcePollStatus(): Promise<StatusResponse | undefined> {
     return await this.performStatusPoll()
+  }
+
+  async checkApiHealth(): Promise<{ isHealthy: boolean; message: string }> {
+    return await this.apiClient.healthCheck()
+  }
+
+  /**
+   * Resets submittedAt for products that are stuck in PENDING and not found by API.
+   * This is the background-context version of the same function in ProductManager.
+   * @param externalIds - The external IDs of the products to reset.
+   */
+  async resetSubmittedAtForMissingProducts(
+    externalIds: string[],
+  ): Promise<void> {
+    await ErrorBoundary.protect(async () => {
+      if (this.isPolling) {
+        return
+      }
+
+      if (!this.apiClient.isConfigured()) {
+        return
+      }
+
+      this.isPolling = true
+
+      const tab = await ContentMessenger.findActiveGlovoTab()
+      if (!tab?.id) {
+        return
+      }
+
+      await ContentMessenger.resetSubmittedAtForMissingProducts(externalIds)
+    }, 'SyncOrchestrator.resetSubmittedAtForMissingProducts')
   }
 
   private async performSpecificProductsSync(
@@ -161,6 +195,8 @@ export class SyncOrchestrator {
               'Background',
               `Specific products sync completed: ${submitResult.submitted_count} products submitted in ${syncDuration}ms`,
             )
+            // Wait a moment to allow API processing
+            await new Promise((resolve) => setTimeout(resolve, 3000))
 
             // Immediately poll for status of newly submitted products
             this.performImmediateStatusPoll(
@@ -295,7 +331,8 @@ export class SyncOrchestrator {
     this.isSyncing = false
   }
 
-  private async performStatusPoll(): Promise<void> {
+  private async performStatusPoll(): Promise<StatusResponse | undefined> {
+    let statusResult: StatusResponse | undefined
     await PerformanceMonitor.measureAsync(
       'performStatusPoll',
       async () => {
@@ -327,16 +364,15 @@ export class SyncOrchestrator {
           }
 
           // Poll for status updates
-          const statusResult =
-            await this.apiClient.pollProductStatus(externalIds)
+          statusResult = await this.apiClient.pollProductStatus(externalIds)
 
           if (statusResult.results.length > 0) {
             // Update products with new statuses (only non-PENDING)
             const updatedProducts = statusResult.results
-              .filter((apiProduct) => apiProduct.status !== 'PENDING') // Only update completed classifications
-              .map((apiProduct) => {
+              .filter((apiProduct: any) => apiProduct.status !== 'PENDING') // Only update completed classifications
+              .map((apiProduct: any) => {
                 const originalProduct = submittedUnprocessedProducts.find(
-                  (p) => p.externalId === apiProduct.externalId,
+                  (p: Product) => p.externalId === apiProduct.externalId,
                 )
                 if (!originalProduct) return null
 
@@ -350,7 +386,7 @@ export class SyncOrchestrator {
                   isFood: apiProduct.isFood, // Whether product is food or not
                 } as Product
               })
-              .filter((product): product is Product => product !== null)
+              .filter((product: any): product is Product => product !== null)
 
             if (updatedProducts.length > 0) {
               await ContentMessenger.updateProductStatuses(updatedProducts)
@@ -373,6 +409,7 @@ export class SyncOrchestrator {
       },
     )
     this.isPolling = false
+    return statusResult
   }
 
   /**

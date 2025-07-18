@@ -26,15 +26,17 @@ export class Config {
 
   // Sync Configuration
   static readonly SYNC_INTERVAL =
-    Number(import.meta.env.VITE_SYNC_INTERVAL) || 300000 // 5 minutes default
+    Number(import.meta.env.VITE_SYNC_INTERVAL) || 60000 // 1 minute default (optimized for 5s backend queue)
   static readonly SYNC_POLL_INTERVAL =
-    Number(import.meta.env.VITE_SYNC_POLL_INTERVAL) || 150000 // 2.5 minutes default
+    Number(import.meta.env.VITE_SYNC_POLL_INTERVAL) || 30000 // 30 seconds default (fast polling for 5s backend)
   static readonly SYNC_RETRY_ATTEMPTS =
     Number(import.meta.env.VITE_SYNC_RETRY_ATTEMPTS) || 3
   static readonly SYNC_RETRY_DELAY =
     Number(import.meta.env.VITE_SYNC_RETRY_DELAY) || 2000 // 2 seconds default
   static readonly SYNC_BATCH_SIZE =
-    Number(import.meta.env.VITE_SYNC_BATCH_SIZE) || 50
+    Number(import.meta.env.VITE_SYNC_BATCH_SIZE) || 100
+  static readonly POLL_BATCH_SIZE =
+    Number(import.meta.env.VITE_POLL_BATCH_SIZE) || 500
 
   // Extension Configuration
   static readonly EXTENSION_NAME = 'Glovo FODMAP Helper'
@@ -72,12 +74,12 @@ export class Config {
       issues.push('Update interval should be at least 100ms')
     }
 
-    if (Config.SYNC_INTERVAL < 60000) {
-      issues.push('Sync interval should be at least 60 seconds (60000ms)')
+    if (Config.SYNC_INTERVAL < 30000) {
+      issues.push('Sync interval should be at least 30 seconds (30000ms)')
     }
 
-    if (Config.SYNC_POLL_INTERVAL < 60000) {
-      issues.push('Sync poll interval should be at least 60 seconds (60000ms)')
+    if (Config.SYNC_POLL_INTERVAL < 15000) {
+      issues.push('Sync poll interval should be at least 15 seconds (15000ms)')
     }
 
     if (Config.SYNC_RETRY_ATTEMPTS < 1 || Config.SYNC_RETRY_ATTEMPTS > 10) {

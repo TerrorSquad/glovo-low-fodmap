@@ -1,4 +1,5 @@
 import { db, type Product } from '../shared/db'
+import { ErrorBoundary } from '../shared/ErrorBoundary'
 import { ErrorHandler } from '../shared/ErrorHandler'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import type { InjectedProductData } from '../shared/types'
@@ -9,6 +10,29 @@ import type { InjectedProductData } from '../shared/types'
  * Handles product lifecycle from initial discovery to FODMAP classification completion.
  */
 export class ProductManager {
+  /**
+   * Resets submittedAt for products that are stuck in PENDING and not found by API.
+   * Call after polling if API returns missing_ids.
+   */
+  static async resetSubmittedAtForMissingProducts(
+    missingIds: string[],
+  ): Promise<void> {
+    await ErrorBoundary.protect(async () => {
+      if (!missingIds || missingIds.length === 0) return
+
+      const count = await db.products
+        .where('externalId')
+        .anyOf(missingIds)
+        .modify({ submittedAt: null })
+
+      if (count > 0) {
+        ErrorHandler.logInfo(
+          'Content',
+          `Reset submittedAt for ${count}/${missingIds.length} missing products`,
+        )
+      }
+    }, 'ProductManager.resetSubmittedAtForMissingProducts')
+  }
   /**
    * Saves new products discovered from Glovo pages to the database.
    * Only saves products that don't already exist to avoid duplicates.

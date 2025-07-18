@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "NODE_ENV=development vite build",
-    "build:prod": "NODE_ENV=production vite build",
+    "build": "NODE_ENV=development tsc && vite build",
+    "build:prod": "NODE_ENV=production tsc && vite build",
     "preview": "vite preview",
     "lint": "biome lint --fix src",
     "format": "biome format --write src",

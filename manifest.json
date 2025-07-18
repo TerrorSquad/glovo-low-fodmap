@@ -4,7 +4,7 @@
   "version": "1.4.0",
   "description": "Ističe Low-FODMAP proizvode i omogućava sakrivanje ostalih na Glovo prodavnicama.",
   "permissions": ["storage", "alarms"],
-  "host_permissions": ["https://glovoapp.com/*", "http://localhost/*"],
+  "host_permissions": ["https://glovoapp.com/*", "http://localhost/*", "https://glovo-fodmap-api.fly.dev/*"],
   "background": {
     "service_worker": "src/background.ts",
     "type": "module"

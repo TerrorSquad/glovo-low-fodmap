@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.2.0](https://github.com/TerrorSquad/glovo-low-fodmap/compare/v0.1.2...v0.2.0) (2025-07-19)
+
+
+### Features
+
+* enhance product scanning with dynamic currency detection and UI updates ([b0637b7](https://github.com/TerrorSquad/glovo-low-fodmap/commit/b0637b723223041945c2d4ea1536bc2057bd17de))
+
 ## [0.1.2](https://github.com/TerrorSquad/glovo-low-fodmap/compare/v0.1.1...v0.1.2) (2025-07-18)
 
 

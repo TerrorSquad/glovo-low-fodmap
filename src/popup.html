@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <title>FODMAP Helper</title>
 </head>
+
 <body class="popup-container">
   <div class="popup-header">
     <div class="popup-logo">F</div>
@@ -66,13 +68,13 @@
     </div>
   </div>
 
-  <div class="popup-section debug-section">
+  <div class="popup-section debug-section" style="display:none">
     <h3 class="section-title">Debug Tools</h3>
     <button class="btn btn-small btn-secondary" id="healthCheck">Health Check</button>
     <button class="btn btn-small btn-secondary" id="diagnostics">Full Report</button>
     <button class="btn btn-small btn-secondary" id="exportData">Export Data</button>
     <button class="btn btn-small btn-secondary" id="clearData">Clear Data</button>
-    
+
     <div class="mt-2 text-xs text-gray-600 leading-tight">
       <strong>Shortcuts:</strong> Space=Toggle, ⌘S=Sync, ⌘P=Poll, ⌘D=Dark Mode, ⌘R=Refresh, H=Health, T=Debug
     </div>
@@ -80,4 +82,5 @@
 
   <script type="module" src="popup.ts"></script>
 </body>
+
 </html>

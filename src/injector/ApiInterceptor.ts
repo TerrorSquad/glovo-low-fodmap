@@ -10,6 +10,9 @@ export class ApiInterceptor {
   ]
 
   static init(): void {
+    // Logger cannot be used in page context (world: MAIN).
+    // Use console.log instead to avoid errors.
+    // This is a workaround for the fact that Logger is not available in the MAIN world.
     console.log(
       '✅ FODMAP Helper: Injector script is active in the MAIN world.',
     )
@@ -31,6 +34,7 @@ export class ApiInterceptor {
           const jsonData = await clonedResponse.json()
           ProductExtractor.processAndPostProducts(jsonData, urlString)
         } catch (error) {
+          // Logger cannot be used in page context (world: MAIN). Use console.error instead.
           console.error('FODMAP Injector: Error parsing JSON response', error)
         }
       }

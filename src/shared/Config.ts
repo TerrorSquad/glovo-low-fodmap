@@ -1,5 +1,3 @@
-import { Logger } from './Logger'
-
 /**
  * Configuration management for the extension
  */
@@ -13,14 +11,14 @@ export class Config {
 
   // Performance Monitoring
   static readonly PERFORMANCE_MONITORING =
-    import.meta.env.VITE_PERFORMANCE_MONITORING !== 'false'
+    import.meta.env.VITE_PERFORMANCE_MONITORING === 'true'
   static readonly MEMORY_MONITORING =
     import.meta.env.VITE_MEMORY_MONITORING === 'true'
 
   // Feature Flags
-  static readonly ENABLE_SYNC = import.meta.env.VITE_ENABLE_SYNC !== 'false'
+  static readonly ENABLE_SYNC = import.meta.env.VITE_ENABLE_SYNC === 'true'
   static readonly ENABLE_PERIODIC_UPDATE =
-    import.meta.env.VITE_ENABLE_PERIODIC_UPDATE !== 'false'
+    import.meta.env.VITE_ENABLE_PERIODIC_UPDATE === 'true'
   static readonly UPDATE_INTERVAL =
     Number(import.meta.env.VITE_UPDATE_INTERVAL) || 1000
 
@@ -91,9 +89,6 @@ export class Config {
     }
 
     if (issues.length > 0) {
-      Logger.warn('Config', 'Configuration issues found:', {
-        issues,
-      })
       return false
     }
 

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.2.1](https://github.com/TerrorSquad/glovo-low-fodmap/compare/v0.2.0...v0.2.1) (2025-07-19)
+
+
+### Bug Fixes
+
+* ensure feature flags default to true for ENABLE_SYNC and ENABLE_PERIODIC_UPDATE ([4257727](https://github.com/TerrorSquad/glovo-low-fodmap/commit/42577277c773c9044644c1e1ff40cf2d9b5bcb47))
+* streamline build scripts and enhance debug section visibility ([ed289c2](https://github.com/TerrorSquad/glovo-low-fodmap/commit/ed289c2003ca73bf698a88063359b8fbd81ef3ee))
+
 ## [0.2.0](https://github.com/TerrorSquad/glovo-low-fodmap/compare/v0.1.2...v0.2.0) (2025-07-19)
 
 

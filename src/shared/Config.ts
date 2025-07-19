@@ -16,9 +16,10 @@ export class Config {
     import.meta.env.VITE_MEMORY_MONITORING === 'true'
 
   // Feature Flags
-  static readonly ENABLE_SYNC = import.meta.env.VITE_ENABLE_SYNC === 'true'
+  static readonly ENABLE_SYNC =
+    import.meta.env.VITE_ENABLE_SYNC === 'true' || true
   static readonly ENABLE_PERIODIC_UPDATE =
-    import.meta.env.VITE_ENABLE_PERIODIC_UPDATE === 'true'
+    import.meta.env.VITE_ENABLE_PERIODIC_UPDATE === 'true' || true
   static readonly UPDATE_INTERVAL =
     Number(import.meta.env.VITE_UPDATE_INTERVAL) || 1000
 

@@ -13,7 +13,7 @@ import { StyleManager } from './StyleManager'
  *
  * Key responsibilities:
  * - Finding untagged product cards on the page
- * - Associating cards with external product IDs for database lookups
+ * - Associating cards with product hashes for database lookups
  * - Applying FODMAP status indicators and visibility controls
  * - Coordinating with StyleManager for visual appearance
  * - Performance optimization for bulk card operations
@@ -26,16 +26,16 @@ export class CardManager {
   private static readonly CARD_NAME_SELECTOR = Config.SELECTORS.CARD_NAME
 
   /**
-   * Tags visible product cards with external IDs for database association
+   * Tags visible product cards with hashes for database association
    * Matches card names with injected product data to establish data relationships
    *
-   * @param products - Array of product data containing names and external IDs
+   * @param products - Array of product data containing names and hashes
    *
    * Process:
-   * 1. Finds all untagged cards on the page (no data-external-id attribute)
-   * 2. Creates name-to-ID mapping from provided product data
+   * 1. Finds all untagged cards on the page (no data-hash attribute)
+   * 2. Creates name-to-hash mapping from provided product data
    * 3. Extracts product names from card DOM elements
-   * 4. Associates matching cards with external IDs via data attributes
+   * 4. Associates matching cards with hashes via data attributes
    *
    * Used when: New products are injected via content script or API responses
    */
@@ -43,11 +43,9 @@ export class CardManager {
     PerformanceMonitor.measure('tagVisibleCards', () => {
       try {
         const untaggedCards = document.querySelectorAll<HTMLElement>(
-          `${CardManager.CARD_SELECTOR}:not([data-external-id])`,
+          `${CardManager.CARD_SELECTOR}:not([data-hash])`,
         )
-        const productMap = new Map(
-          products.map((p) => [p.name.trim(), p.externalId]),
-        )
+        const productMap = new Map(products.map((p) => [p.name.trim(), p.hash]))
 
         untaggedCards.forEach((card) => {
           const cardName = card
@@ -56,15 +54,15 @@ export class CardManager {
 
           if (!cardName) return
 
-          const externalId = productMap.get(cardName)
-          if (externalId) {
-            card.dataset.externalId = externalId.toString()
+          const hash = productMap.get(cardName)
+          if (hash) {
+            card.dataset.hash = hash.toString()
           }
         })
 
         Logger.info(
           'Content',
-          `Tagged ${untaggedCards.length} cards with external IDs`,
+          `Tagged ${untaggedCards.length} cards with hashes`,
         )
       } catch (error) {
         ErrorHandler.logError('Content', error, { context: 'Card tagging' })
@@ -76,7 +74,7 @@ export class CardManager {
    * Tags visible product cards using database product records
    * Alternative to tagVisibleCards when working with stored Product objects instead of injected data
    *
-   * @param products - Array of Product objects from database with names and external IDs
+   * @param products - Array of Product objects from database with names and hashes
    *
    * Features case-insensitive name matching for better reliability
    * Used when: DOM scanning discovers products that already exist in database
@@ -85,10 +83,10 @@ export class CardManager {
     PerformanceMonitor.measure('tagVisibleCardsByName', () => {
       try {
         const untaggedCards = document.querySelectorAll<HTMLElement>(
-          `${CardManager.CARD_SELECTOR}:not([data-external-id])`,
+          `${CardManager.CARD_SELECTOR}:not([data-hash])`,
         )
         const productMap = new Map(
-          products.map((p) => [p.name.trim().toLowerCase(), p.externalId]),
+          products.map((p) => [p.name.trim().toLowerCase(), p.hash]),
         )
 
         untaggedCards.forEach((card) => {
@@ -98,15 +96,15 @@ export class CardManager {
 
           if (!cardName) return
 
-          const externalId = productMap.get(cardName.toLowerCase())
-          if (externalId) {
-            card.dataset.externalId = externalId.toString()
+          const hash = productMap.get(cardName.toLowerCase())
+          if (hash) {
+            card.dataset.hash = hash.toString()
           }
         })
 
         Logger.info(
           'Content',
-          `Tagged ${untaggedCards.length} cards with external IDs from database`,
+          `Tagged ${untaggedCards.length} cards with hashes from database`,
         )
       } catch (error) {
         ErrorHandler.logError('Content', error, {
@@ -117,7 +115,7 @@ export class CardManager {
   }
 
   /**
-   * Retrieves all product cards that have been tagged with external IDs
+   * Retrieves all product cards that have been tagged with hashes
    * Returns only cards that have been associated with database products
    *
    * @returns Array of HTML elements representing tagged product cards
@@ -128,7 +126,7 @@ export class CardManager {
   static getTaggedCards(): HTMLElement[] {
     return Array.from(
       document.querySelectorAll<HTMLElement>(
-        `${CardManager.CARD_SELECTOR}[data-external-id]`,
+        `${CardManager.CARD_SELECTOR}[data-hash]`,
       ),
     )
   }
@@ -149,7 +147,7 @@ export class CardManager {
    *
    * Update process:
    * 1. Retrieves all tagged cards from DOM
-   * 2. Batch fetches product data from database by external IDs
+   * 2. Batch fetches product data from database by hashes
    * 3. Compares current card state with desired state
    * 4. Applies styling changes only when necessary
    * 5. Updates visibility based on user preferences
@@ -168,16 +166,15 @@ export class CardManager {
           const allCards = CardManager.getTaggedCards()
           if (allCards.length === 0) return
 
-          const externalIds = allCards.map((card) => card.dataset.externalId!)
-          const dbMap =
-            await ProductManager.getProductsByExternalIds(externalIds)
+          const hashes = allCards.map((card) => card.dataset.hash!)
+          const dbMap = await ProductManager.getProductsByHashes(hashes)
           let changedCards = 0
 
           allCards.forEach((card) => {
-            const externalId = card.dataset.externalId
-            if (!externalId) return
+            const hash = card.dataset.hash
+            if (!hash) return
 
-            const product = dbMap.get(externalId)
+            const product = dbMap.get(hash)
             if (product) {
               const currentStatus = card.dataset.fodmapStatus
 

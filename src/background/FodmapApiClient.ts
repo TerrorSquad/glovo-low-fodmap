@@ -19,7 +19,7 @@ type SubmitResponse = {
 export type StatusResponse = {
   results: Array<{
     id: number
-    externalId: string
+    hash: string
     name: string
     category: string
     status: 'LOW' | 'MODERATE' | 'HIGH' | 'UNKNOWN' | 'PENDING'
@@ -31,7 +31,7 @@ export type StatusResponse = {
   }>
   found: number
   missing: number
-  missing_ids: string[]
+  missing_hashes: string[]
 }
 
 /**
@@ -105,7 +105,7 @@ export class FodmapApiClient {
    * Poll for status updates of pending products
    */
   async pollProductStatus(
-    externalIds: string[],
+    hashes: string[],
     options: ApiRetryOptions = {},
   ): Promise<StatusResponse> {
     const {
@@ -119,18 +119,15 @@ export class FodmapApiClient {
       async () => {
         return (
           (await ErrorBoundary.protect(async () => {
-            if (!externalIds.length) {
-              return { results: [], found: 0, missing: 0, missing_ids: [] }
+            if (!hashes.length) {
+              return { results: [], found: 0, missing: 0, missing_hashes: [] }
             }
 
-            const batches = this.createBatches(
-              externalIds,
-              Config.POLL_BATCH_SIZE,
-            )
+            const batches = this.createBatches(hashes, Config.POLL_BATCH_SIZE)
             const allResults: StatusResponse['results'] = []
             let totalFound = 0
             let totalMissing = 0
-            const allMissingIds: string[] = []
+            const allMissingHashes: string[] = []
 
             for (const batch of batches) {
               const result = await this.pollBatch(batch, {
@@ -141,29 +138,28 @@ export class FodmapApiClient {
               allResults.push(...result.results)
               totalFound += result.found
               totalMissing += result.missing
-              allMissingIds.push(...result.missing_ids)
+              allMissingHashes.push(...result.missing_hashes)
             }
 
             return {
               results: allResults,
               found: totalFound,
               missing: totalMissing,
-              missing_ids: allMissingIds,
+              missing_hashes: allMissingHashes,
             }
           }, 'FodmapApiClient.pollProductStatus')) || {
             results: [],
             found: 0,
             missing: 0,
-            missing_ids: [],
+            missing_hashes: [],
           }
         )
       },
       {
         threshold: 1000,
         metadata: {
-          productCount: externalIds.length,
-          batchCount: this.createBatches(externalIds, Config.POLL_BATCH_SIZE)
-            .length,
+          productCount: hashes.length,
+          batchCount: this.createBatches(hashes, Config.POLL_BATCH_SIZE).length,
         },
       },
     )
@@ -210,7 +206,7 @@ export class FodmapApiClient {
   }
 
   private async pollBatch(
-    externalIds: string[],
+    hashes: string[],
     options: Required<ApiRetryOptions>,
   ): Promise<StatusResponse> {
     const { maxAttempts, delayMs, backoffMultiplier } = options
@@ -223,7 +219,7 @@ export class FodmapApiClient {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ external_ids: externalIds }),
+          body: JSON.stringify({ hashes }),
         })
 
         if (!response.ok) {
@@ -236,7 +232,7 @@ export class FodmapApiClient {
         lastError = error as Error
         ErrorHandler.logError('Background', error, {
           context: 'Product status polling',
-          metadata: { attempt, maxAttempts, productCount: externalIds.length },
+          metadata: { attempt, maxAttempts, productCount: hashes.length },
         })
 
         if (attempt < maxAttempts) {

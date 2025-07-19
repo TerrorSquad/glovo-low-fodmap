@@ -1,5 +1,6 @@
 import { Config } from './Config'
 import { Logger } from './Logger'
+import { MetricsCollector } from './MetricsCollector'
 
 type PerformanceOptions = {
   /** Only log if duration exceeds this threshold (ms) */
@@ -47,7 +48,6 @@ export class PerformanceMonitor {
 
     // Record metrics if MetricsCollector is available
     try {
-      const { MetricsCollector } = require('./MetricsCollector')
       MetricsCollector.recordPerformance(name, duration)
     } catch {
       // MetricsCollector not available, ignore

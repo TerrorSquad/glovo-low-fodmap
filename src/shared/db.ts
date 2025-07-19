@@ -3,8 +3,9 @@ import Dexie, { type Table } from 'dexie'
 export type FodmapStatus = 'LOW' | 'MODERATE' | 'HIGH' | 'UNKNOWN' | 'PENDING'
 
 export interface Product {
-  externalId: string
+  // hash used for deduplication
   name: string
+  hash: string // Stable hash for deduplication (based on name)
   price?: number
   status: FodmapStatus
   category: string
@@ -19,9 +20,8 @@ export class FodmapDatabase extends Dexie {
 
   constructor() {
     super('fodmapDatabase')
-    this.version(9).stores({
-      products:
-        '++id, &externalId, name, status, submittedAt, processedAt, isFood',
+    this.version(11).stores({
+      products: '++id, &hash, name, status, submittedAt, processedAt, isFood',
     })
   }
 }

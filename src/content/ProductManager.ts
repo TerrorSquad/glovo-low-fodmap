@@ -13,23 +13,23 @@ import type { InjectedProductData } from '../shared/types'
 export class ProductManager {
   /**
    * Resets submittedAt for products that are stuck in PENDING and not found by API.
-   * Call after polling if API returns missing_ids.
+   * Call after polling if API returns missing_hashes.
    */
   static async resetSubmittedAtForMissingProducts(
-    missingIds: string[],
+    hashes: string[],
   ): Promise<void> {
     await ErrorBoundary.protect(async () => {
-      if (!missingIds || missingIds.length === 0) return
+      if (!hashes || hashes.length === 0) return
 
       const count = await db.products
-        .where('externalId')
-        .anyOf(missingIds)
+        .where('hash')
+        .anyOf(hashes)
         .modify({ submittedAt: null })
 
       if (count > 0) {
         Logger.info(
           'Content',
-          `Reset submittedAt for ${count}/${missingIds.length} missing products`,
+          `Reset submittedAt for ${count}/${hashes.length} missing products`,
         )
       }
     }, 'ProductManager.resetSubmittedAtForMissingProducts')
@@ -45,28 +45,28 @@ export class ProductManager {
     return await PerformanceMonitor.measureAsync(
       'saveNewProducts',
       async () => {
+        // Import getProductHash
+        const { getProductHash } = await import('../shared/ProductHash')
         const incomingProducts: Product[] = products.map((p) => ({
-          externalId: p.externalId,
           name: p.name,
+          hash: getProductHash(p.name),
           price: p.price,
           category: p.category || 'Uncategorized',
           status: p.status || 'PENDING',
         }))
 
-        const incomingExtIds = incomingProducts.map((p) => p.externalId)
+        const incomingHashes = incomingProducts.map((p) => p.hash)
 
         try {
           await db.transaction('rw', db.products, async () => {
             const existingProducts = await db.products
-              .where('externalId')
-              .anyOf(incomingExtIds)
+              .where('hash')
+              .anyOf(incomingHashes)
               .toArray()
 
-            const existingExtIds = new Set(
-              existingProducts.map((p) => p.externalId),
-            )
+            const existingHashes = new Set(existingProducts.map((p) => p.hash))
             const newProductsToDb = incomingProducts.filter(
-              (p) => !existingExtIds.has(p.externalId),
+              (p) => !existingHashes.has(p.hash),
             )
 
             if (newProductsToDb.length > 0) {
@@ -78,7 +78,7 @@ export class ProductManager {
               chrome.runtime.sendMessage({
                 action: 'newProductsFound',
                 data: {
-                  newProductIds: newProductsToDb.map((p) => p.externalId),
+                  newProductHashes: newProductsToDb.map((p) => p.hash),
                 },
               })
             }
@@ -103,19 +103,17 @@ export class ProductManager {
     return await PerformanceMonitor.measureAsync('updateStatuses', async () => {
       try {
         await db.transaction('rw', db.products, async () => {
-          const externalIds = apiProducts.map((p) => p.externalId)
+          const hashes = apiProducts.map((p) => p.hash)
           const localProducts = await db.products
-            .where('externalId')
-            .anyOf(externalIds)
+            .where('hash')
+            .anyOf(hashes)
             .toArray()
 
-          const localProductMap = new Map(
-            localProducts.map((p) => [p.externalId, p]),
-          )
+          const localProductMap = new Map(localProducts.map((p) => [p.hash, p]))
           const finalUpdates: Product[] = []
 
           for (const apiProduct of apiProducts) {
-            const localProduct = localProductMap.get(apiProduct.externalId)
+            const localProduct = localProductMap.get(apiProduct.hash)
             if (localProduct) {
               localProduct.status = apiProduct.status
 
@@ -215,39 +213,35 @@ export class ProductManager {
   }
 
   /**
-   * Retrieves products by their external IDs and returns them as a Map for efficient lookup.
-   * Used when you need to quickly find specific products by their Glovo IDs.
+   * Retrieves products by their hashes and returns them as a Map for efficient lookup.
+   * Used when you need to quickly find specific products by their hash.
    *
-   * @param externalIds - Array of Glovo product IDs to search for
-   * @returns Promise resolving to Map with externalId as key and Product as value
+   * @param hashes - Array of product hashes to search for
+   * @returns Promise resolving to Map with hash as key and Product as value
    */
-  static async getProductsByExternalIds(
-    externalIds: string[],
+  static async getProductsByHashes(
+    hashes: string[],
   ): Promise<Map<string, Product>> {
     const products =
       (await ErrorHandler.safeExecute(
-        async () =>
-          db.products.where('externalId').anyOf(externalIds).toArray(),
+        async () => db.products.where('hash').anyOf(hashes).toArray(),
         'Content',
         [],
       )) || []
-    return new Map(products.map((p) => [p.externalId, p]))
+    return new Map(products.map((p) => [p.hash, p]))
   }
 
   /**
-   * Retrieves products by their external IDs and returns them as an array.
-   * Similar to getProductsByExternalIds but returns an array instead of a Map.
+   * Retrieves products by their hashes and returns them as an array.
+   * Similar to getProductsByHashes but returns an array instead of a Map.
    *
-   * @param externalIds - Array of Glovo product IDs to search for
+   * @param hashes - Array of product hashes to search for
    * @returns Promise resolving to array of matching products
    */
-  static async getProductsArrayByExternalIds(
-    externalIds: string[],
-  ): Promise<Product[]> {
+  static async getProductsArrayByHashes(hashes: string[]): Promise<Product[]> {
     return (
       (await ErrorHandler.safeExecute(
-        async () =>
-          db.products.where('externalId').anyOf(externalIds).toArray(),
+        async () => db.products.where('hash').anyOf(hashes).toArray(),
         'Content',
         [],
       )) || []

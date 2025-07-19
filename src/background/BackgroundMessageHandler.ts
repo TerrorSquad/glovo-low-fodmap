@@ -104,11 +104,11 @@ export class BackgroundMessageHandler {
       .then(async (pollResult) => {
         if (
           pollResult &&
-          Array.isArray(pollResult.missing_ids) &&
-          pollResult.missing_ids.length > 0
+          Array.isArray(pollResult.missing_hashes) &&
+          pollResult.missing_hashes.length > 0
         ) {
           await this.syncOrchestrator.resetSubmittedAtForMissingProducts(
-            pollResult.missing_ids,
+            pollResult.missing_hashes,
           )
         }
       })

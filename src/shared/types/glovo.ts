@@ -48,9 +48,10 @@ export interface Product {
    */
   category: string
   id: number
-  externalId: string
+  // hash used for deduplication
   storeProductId: string
   name: string
+  hash: string // Stable hash for deduplication (based on name)
   description: string
   price: number
   priceInfo: PriceInfo

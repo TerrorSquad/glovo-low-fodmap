@@ -77,7 +77,7 @@ export class MessageHandler {
    * - 'log': Forward log messages to console
    * - 'getUnsubmittedProducts': Retrieve products pending API submission
    * - 'getSubmittedUnprocessedProducts': Get products awaiting classification
-   * - 'getProductsByExternalIds': Fetch specific products by ID
+   * - 'getProductsByHashes': Fetch specific products by hash
    * - 'getProductStatistics': Return product database metrics
    * - 'updateProductStatuses': Update FODMAP classifications
    * - 'toggleHideNonLowFodmap': Toggle visibility preferences
@@ -107,8 +107,8 @@ export class MessageHandler {
             this.handleGetSubmittedUnprocessedProducts(sendResponse)
             return true
 
-          case 'getProductsByExternalIds':
-            this.handleGetProductsByExternalIds(message.data, sendResponse)
+          case 'getProductsByHashes':
+            this.handleGetProductsByHashes(message.data, sendResponse)
             return true
 
           case 'getProductStatistics':
@@ -203,20 +203,18 @@ export class MessageHandler {
   }
 
   private async handleResetSubmittedAtForMissingProducts(
-    data: { externalIds: string[] },
+    data: { hashes: string[] },
     sendResponse: (response?: any) => void,
   ): Promise<void> {
     return await PerformanceMonitor.measureAsync(
       'handleResetSubmittedAtForMissingProducts',
       async () => {
         try {
-          await ProductManager.resetSubmittedAtForMissingProducts(
-            data.externalIds,
-          )
-          sendResponse({ success: true, result: data.externalIds })
+          await ProductManager.resetSubmittedAtForMissingProducts(data.hashes)
+          sendResponse({ success: true, result: data.hashes })
           Logger.info(
             'Content',
-            `Reset submitted_at for ${data.externalIds} missing products`,
+            `Reset submitted_at for ${data.hashes} missing products`,
           )
         } catch (error) {
           ErrorHandler.logError('Content', error, {
@@ -229,35 +227,35 @@ export class MessageHandler {
   }
 
   /**
-   * Retrieves specific products by their external IDs
+   * Retrieves specific products by their hashes
    * Used for targeted product data queries and batch operations
    *
-   * @param data - Object containing array of external IDs to look up
+   * @param data - Object containing array of hashes to look up
    * @param sendResponse - Callback to send matching product array back to requester
    *
-   * Efficiently fetches products by ID for background script operations,
+   * Efficiently fetches products by hash for background script operations,
    * popup displays, and other targeted data access scenarios.
    */
-  private async handleGetProductsByExternalIds(
-    data: { externalIds: string[] },
+  private async handleGetProductsByHashes(
+    data: { hashes: string[] },
     sendResponse: (response?: any) => void,
   ): Promise<void> {
     return await PerformanceMonitor.measureAsync(
-      'handleGetProductsByExternalIds',
+      'handleGetProductsByHashes',
       async () => {
         try {
-          const products = await ProductManager.getProductsArrayByExternalIds(
-            data.externalIds,
+          const products = await ProductManager.getProductsArrayByHashes(
+            data.hashes,
           )
           sendResponse(products)
           Logger.info(
             'Content',
-            `Sent ${products.length} products by external IDs to background`,
+            `Sent ${products.length} products by hashes to background`,
           )
         } catch (error) {
           ErrorHandler.logError('Content', error, {
-            context: 'Getting products by external IDs',
-            metadata: { externalIds: data.externalIds },
+            context: 'Getting products by hashes',
+            metadata: { hashes: data.hashes },
           })
           sendResponse([])
         }

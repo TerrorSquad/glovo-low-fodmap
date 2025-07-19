@@ -1,3 +1,4 @@
+import { getProductHash } from '../shared/ProductHash'
 import { type Product, type ProductsResponse } from '../shared/types/glovo'
 
 /**
@@ -29,9 +30,12 @@ export class ProductExtractor {
   static processAndPostProducts(jsonData: ProductsResponse, url: string): void {
     const products = ProductExtractor.extractFromResponse(jsonData)
 
-    // Set category from response data
+    // Set category and hash from response data
+    // Hash only the name
+    // ...existing code...
     for (const product of products) {
       product.category = jsonData?.data?.title || 'Uncategorized'
+      product.hash = getProductHash(product.name)
     }
 
     if (products.length > 0) {

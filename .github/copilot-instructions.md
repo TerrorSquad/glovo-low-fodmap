@@ -1,3 +1,9 @@
+# TypeScript Import/Export Policy
+
+Always use ES module `import`/`export` syntax for all TypeScript code. Never use `require(...)` in this project.
+# Automated Core Refactor Policy
+
+For core migrations or refactors (such as changing product identification from `externalId` to `hash`), Copilot should automatically update all related files across the codebase without repeatedly asking for user confirmation. Assume that all affected files and logic must be updated for consistency and reliability. Only request confirmation for ambiguous, destructive, or non-obvious changes.
 # GitHub Copilot Instructions for Glovo FODMAP Helper Extension
 
 ## Project Overview

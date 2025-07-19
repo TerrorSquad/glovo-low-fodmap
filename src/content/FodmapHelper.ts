@@ -288,7 +288,7 @@ export class FodmapHelper implements IFodmapHelper {
               `📄 FODMAP Helper: Found ${existingProducts.length} products in database from ${productNames.length} scanned`,
             )
 
-            // Tag the cards with their external IDs from the database
+            // Tag the cards with their hashes from the database
             CardManager.tagVisibleCardsByName(existingProducts)
             await this.updatePageStyles()
 

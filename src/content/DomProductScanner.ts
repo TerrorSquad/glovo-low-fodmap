@@ -1,6 +1,7 @@
 import { ErrorHandler } from '../shared/ErrorHandler'
 import { Logger } from '../shared/Logger'
 import { MetricsCollector } from '../shared/MetricsCollector'
+import { getProductHash } from '../shared/ProductHash'
 import { type Product } from '../shared/types/glovo'
 
 export interface ProductScanResult {
@@ -599,7 +600,7 @@ export class DomProductScanner {
 
       const product: Product = {
         id: DomProductScanner.simpleHash(uniqueId),
-        externalId: uniqueId,
+        hash: getProductHash(name),
         storeProductId: productId || `store-${index}-${timestamp}`,
         name: name.trim(),
         description: description?.trim() || '',

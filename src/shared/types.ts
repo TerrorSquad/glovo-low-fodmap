@@ -1,7 +1,8 @@
 import { type FodmapStatus } from './db'
 
 export interface InjectedProductData {
-  externalId: string
+  // externalId: string // removed, use hash for deduplication
+  hash: string
   name: string
   description?: string
   category: string

@@ -82,8 +82,8 @@ export class SyncOrchestrator {
     return await this.performSubmitSync('manual')
   }
 
-  async syncSpecificProducts(externalIds: string[]): Promise<void> {
-    return await this.performSpecificProductsSync(externalIds)
+  async syncSpecificProducts(hashes: string[]): Promise<void> {
+    return await this.performSpecificProductsSync(hashes)
   }
 
   async forcePollStatus(): Promise<StatusResponse | undefined> {
@@ -93,11 +93,9 @@ export class SyncOrchestrator {
   /**
    * Resets submittedAt for products that are stuck in PENDING and not found by API.
    * This is the background-context version of the same function in ProductManager.
-   * @param externalIds - The external IDs of the products to reset.
+   * @param hashes - The hashes of the products to reset.
    */
-  async resetSubmittedAtForMissingProducts(
-    externalIds: string[],
-  ): Promise<void> {
+  async resetSubmittedAtForMissingProducts(hashes: string[]): Promise<void> {
     await ErrorBoundary.protect(async () => {
       if (this.isPolling) {
         return
@@ -114,13 +112,11 @@ export class SyncOrchestrator {
         return
       }
 
-      await ContentMessenger.resetSubmittedAtForMissingProducts(externalIds)
+      await ContentMessenger.resetSubmittedAtForMissingProducts(hashes)
     }, 'SyncOrchestrator.resetSubmittedAtForMissingProducts')
   }
 
-  private async performSpecificProductsSync(
-    externalIds: string[],
-  ): Promise<void> {
+  private async performSpecificProductsSync(hashes: string[]): Promise<void> {
     await PerformanceMonitor.measureAsync(
       'performSpecificProductsSync',
       async () => {
@@ -144,9 +140,8 @@ export class SyncOrchestrator {
             return
           }
 
-          // Get specific products by their external IDs
-          const allProducts =
-            await ContentMessenger.getProductsByExternalIds(externalIds)
+          // Get specific products by their hashes
+          const allProducts = await ContentMessenger.getProductsByHashes(hashes)
 
           // Filter to only unsubmitted products (no submittedAt AND status is UNKNOWN/PENDING)
           const productsToSubmit = allProducts.filter(
@@ -159,7 +154,7 @@ export class SyncOrchestrator {
           if (!productsToSubmit.length) {
             Logger.info(
               'Background',
-              `No unsubmitted products found for specific sync with IDs: ${externalIds.join(', ')}`,
+              `No unsubmitted products found for specific sync with hashes: ${hashes.join(', ')}`,
             )
             return
           }
@@ -192,7 +187,7 @@ export class SyncOrchestrator {
           } catch (error) {
             ErrorHandler.logError('Background', error, {
               context: 'Specific products submit sync',
-              metadata: { productCount: productsToSubmit.length, externalIds },
+              metadata: { productCount: productsToSubmit.length, hashes },
             })
           } finally {
             this.isSyncing = false
@@ -328,16 +323,14 @@ export class SyncOrchestrator {
           // Get products that have been submitted but not yet processed
           const submittedUnprocessedProducts =
             await ContentMessenger.getSubmittedUnprocessedProducts()
-          const externalIds = submittedUnprocessedProducts.map(
-            (p) => p.externalId,
-          )
+          const hashes = submittedUnprocessedProducts.map((p) => p.hash)
 
-          if (!externalIds.length) {
+          if (!hashes.length) {
             return
           }
 
           // Poll for status updates
-          statusResult = await this.apiClient.pollProductStatus(externalIds)
+          statusResult = await this.apiClient.pollProductStatus(hashes)
 
           if (statusResult.results.length > 0) {
             // Update products with new statuses (only non-PENDING)
@@ -345,7 +338,7 @@ export class SyncOrchestrator {
               .filter((apiProduct: any) => apiProduct.status !== 'PENDING') // Only update completed classifications
               .map((apiProduct: any) => {
                 const originalProduct = submittedUnprocessedProducts.find(
-                  (p: Product) => p.externalId === apiProduct.externalId,
+                  (p: Product) => p.hash === apiProduct.hash,
                 )
                 if (!originalProduct) return null
 

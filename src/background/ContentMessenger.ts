@@ -128,18 +128,16 @@ export class ContentMessenger {
   }
 
   /**
-   * Retrieves specific products by their external IDs.
+   * Retrieves specific products by their hashes.
    * Used when sync operations need to get full product data for specific items.
    * Delegates to content script to query the database.
    *
-   * @param externalIds - Array of Glovo product IDs to retrieve
+   * @param hashes - Array of product hashes to retrieve
    * @returns Promise resolving to array of matching products
    */
-  static async getProductsByExternalIds(
-    externalIds: string[],
-  ): Promise<Product[]> {
+  static async getProductsByHashes(hashes: string[]): Promise<Product[]> {
     return await PerformanceMonitor.measureAsync(
-      'getProductsByExternalIds',
+      'getProductsByHashes',
       async () => {
         const tab = await ContentMessenger.findActiveGlovoTab()
         if (!tab?.id) {
@@ -152,18 +150,18 @@ export class ContentMessenger {
 
         try {
           const products = await ContentMessenger.sendToContent(tab.id, {
-            action: 'getProductsByExternalIds',
-            data: { externalIds },
+            action: 'getProductsByHashes',
+            data: { hashes },
           })
           Logger.info(
             'Background',
-            `Retrieved ${products?.length || 0} products by external IDs`,
+            `Retrieved ${products?.length || 0} products by hashes`,
           )
           return products || []
         } catch (error) {
           ErrorHandler.logError('Background', error, {
-            context: 'Getting products by external IDs',
-            metadata: { externalIds },
+            context: 'Getting products by hashes',
+            metadata: { hashes },
           })
           return []
         }
@@ -210,7 +208,7 @@ export class ContentMessenger {
   }
 
   static async resetSubmittedAtForMissingProducts(
-    externalIds: string[],
+    hashes: string[],
   ): Promise<void> {
     return await PerformanceMonitor.measureAsync(
       'resetSubmittedAtForMissingProducts',
@@ -227,16 +225,16 @@ export class ContentMessenger {
         try {
           await ContentMessenger.sendToContent(tab.id, {
             action: 'resetSubmittedAtForMissingProducts',
-            data: { externalIds },
+            data: { hashes },
           })
           Logger.info(
             'Background',
-            `Reset submittedAt for ${externalIds.length} products`,
+            `Reset submittedAt for ${hashes.length} products`,
           )
         } catch (error) {
           ErrorHandler.logError('Background', error, {
             context: 'Resetting submittedAt for missing products',
-            metadata: { externalIds },
+            metadata: { hashes },
           })
         }
       },

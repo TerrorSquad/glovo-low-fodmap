@@ -3,7 +3,8 @@ import { ErrorBoundary } from '../shared/ErrorBoundary'
 import { ErrorHandler } from '../shared/ErrorHandler'
 import { Logger } from '../shared/Logger'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
-import type { InjectedProductData } from '../shared/types'
+import { getProductHash } from '../shared/ProductHash'
+import { type InjectedProductData } from '../shared/types'
 
 /**
  * Manages product data operations including saving, updating, and querying products.
@@ -45,8 +46,6 @@ export class ProductManager {
     return await PerformanceMonitor.measureAsync(
       'saveNewProducts',
       async () => {
-        // Import getProductHash
-        const { getProductHash } = await import('../shared/ProductHash')
         const incomingProducts: Product[] = products.map((p) => ({
           name: p.name,
           hash: getProductHash(p.name),

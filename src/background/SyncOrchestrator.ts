@@ -1,12 +1,11 @@
 import { Config } from '../shared/Config'
-import type { Product } from '../shared/db'
+import { type Product } from '../shared/db'
 import { ErrorBoundary } from '../shared/ErrorBoundary'
 import { ErrorHandler } from '../shared/ErrorHandler'
 import { Logger } from '../shared/Logger'
 import { PerformanceMonitor } from '../shared/PerformanceMonitor'
 import { ContentMessenger } from './ContentMessenger'
-import type { StatusResponse } from './FodmapApiClient'
-import { FodmapApiClient } from './FodmapApiClient'
+import { FodmapApiClient, type StatusResponse } from './FodmapApiClient'
 
 type SyncType = 'manual' | 'periodic'
 

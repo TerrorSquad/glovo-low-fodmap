@@ -8,8 +8,8 @@ export class Config {
   static readonly API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || ''
 
   // Debug and Logging
-  static readonly DEBUG_MODE = import.meta.env.VITE_DEBUG_MODE === 'true'
-  static readonly LOG_LEVEL = import.meta.env.VITE_LOG_LEVEL || 'info'
+  static readonly DEBUG_MODE = process.env.NODE_ENV === 'development'
+  static readonly LOG_LEVEL = import.meta.env.VITE_LOG_LEVEL || 'warn'
 
   // Performance Monitoring
   static readonly PERFORMANCE_MONITORING =

@@ -19,7 +19,7 @@ function generateManifest() {
 export default defineConfig({
   plugins: [crx({ manifest: generateManifest() })],
   build: {
-    sourcemap: 'inline',
+    sourcemap: process.env.NODE_ENV === 'development'  ? 'inline' : false,
   },
   css: {
     postcss: {

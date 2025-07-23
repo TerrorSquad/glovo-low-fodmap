@@ -1,10 +1,11 @@
-import  { type Config } from 'tailwindcss'
+import { type Config } from 'tailwindcss'
 
 const config: Config = {
   content: [
-    "./src/**/*.{html,js,ts,jsx,tsx}",
-    "./popup.html",
-    "./*.html"
+    './src/entrypoints/**/*.{html,js,ts,vue}',
+    './src/components/**/*.{html,js,ts,vue}',
+    './src/utils/**/*.{html,js,ts,vue}',
+    './public/*.html',
   ],
   theme: {
     extend: {
@@ -15,11 +16,17 @@ const config: Config = {
         'fodmap-gray': '#9e9e9e',
       },
       fontFamily: {
-        'system': ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        system: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Roboto',
+          'sans-serif',
+        ],
       },
       width: {
         '80': '20rem',
-      }
+      },
     },
   },
   plugins: [],

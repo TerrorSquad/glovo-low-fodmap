@@ -8,11 +8,6 @@
           "type": "json",
           "path": "package.json",
           "jsonpath": "$.version"
-        },
-        {
-          "type": "json",
-          "path": "src/manifest.json",
-          "jsonpath": "$.version"
         }
       ]
     }

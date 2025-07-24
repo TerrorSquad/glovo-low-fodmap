@@ -46,13 +46,6 @@ export class PerformanceMonitor {
       Logger.perf('Performance', name, duration, options.metadata)
     }
 
-    // Record metrics if MetricsCollector is available
-    try {
-      MetricsCollector.recordPerformance(name, duration)
-    } catch {
-      // MetricsCollector not available, ignore
-    }
-
     return duration
   }
 

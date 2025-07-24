@@ -64,7 +64,6 @@ export class FodmapHelper implements IFodmapHelper {
     return (
       (await ErrorBoundary.protect(
         async () => {
-          ErrorBoundary.setupDefaultRecoveryStrategies()
           this.setupEventListeners()
           await this.loadSettings()
           await this.loadTooltipFontSize()

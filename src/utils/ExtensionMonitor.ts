@@ -40,12 +40,6 @@ export class ExtensionMonitor {
     this.isRunning = true
     Logger.info('ExtensionMonitor', 'Starting extension monitoring')
 
-    // Setup error boundary recovery strategies
-    ErrorBoundary.setupDefaultRecoveryStrategies()
-
-    // Register custom recovery strategies for extension-specific issues
-    this.registerExtensionRecoveryStrategies()
-
     // Start periodic health checks
     this.checkInterval = setInterval(() => {
       this.performHealthCheck()
@@ -198,84 +192,6 @@ export class ExtensionMonitor {
         MetricsCollector.record('content.script.unregistered', 1)
       }
     })
-  }
-
-  private registerExtensionRecoveryStrategies(): void {
-    // Recovery strategy for content script communication failures
-    ErrorBoundary.registerRecoveryStrategy('content-communication', {
-      name: 'reload-content-scripts',
-      priority: 8,
-      execute: async () => {
-        try {
-          // Query all tabs and reload content scripts if needed
-          const tabs = await chrome.tabs.query({
-            url: ['https://glovoapp.com/*'],
-          })
-
-          for (const tab of tabs) {
-            if (tab.id) {
-              try {
-                await chrome.tabs.sendMessage(tab.id, { type: 'health-check' })
-              } catch {
-                // Content script not responding, reload it
-                await chrome.tabs.reload(tab.id)
-                Logger.info(
-                  'ExtensionMonitor',
-                  `Reloaded tab ${tab.id} due to unresponsive content script`,
-                )
-              }
-            }
-          }
-
-          return true
-        } catch (error) {
-          ErrorHandler.logError('ExtensionMonitor', error, {
-            context: 'Reloading content scripts',
-          })
-          return false
-        }
-      },
-    })
-
-    // Recovery strategy for storage corruption
-    ErrorBoundary.registerRecoveryStrategy('storage-corruption', {
-      name: 'repair-storage',
-      priority: 7,
-      execute: async () => {
-        try {
-          // Validate storage data
-          const data = await chrome.storage.local.get()
-
-          // Check for corruption indicators
-          const hasValidProducts = Array.isArray(data.products)
-          const hasValidSettings = typeof data.hideNonLowFodmap === 'boolean'
-
-          if (!hasValidProducts || !hasValidSettings) {
-            // Reset corrupted data
-            await chrome.storage.local.clear()
-            await chrome.storage.local.set({
-              products: [],
-              hideNonLowFodmap: false,
-            })
-
-            Logger.info('ExtensionMonitor', 'Repaired corrupted storage data')
-            return true
-          }
-
-          return true
-        } catch (error) {
-          ErrorHandler.logError('ExtensionMonitor', error, {
-            context: 'Repairing storage',
-          })
-          return false
-        }
-      },
-    })
-
-    Logger.info(
-      'ExtensionMonitor',
-      'Extension-specific recovery strategies registered',
-    )
   }
 
   /**

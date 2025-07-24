@@ -1,5 +1,4 @@
 import { db, type Product } from '@/utils/db'
-import { ErrorBoundary } from '@/utils/ErrorBoundary'
 import { ErrorHandler } from '@/utils/ErrorHandler'
 import { Logger } from '@/utils/Logger'
 import { getProductHash } from '@/utils/ProductHash'
@@ -18,21 +17,19 @@ export class ProductManager {
   static async resetSubmittedAtForMissingProducts(
     hashes: string[],
   ): Promise<void> {
-    await ErrorBoundary.protect(async () => {
-      if (!hashes || hashes.length === 0) return
+    if (!hashes || hashes.length === 0) return
 
-      const count = await db.products
-        .where('hash')
-        .anyOf(hashes)
-        .modify({ submittedAt: null })
+    const count = await db.products
+      .where('hash')
+      .anyOf(hashes)
+      .modify({ submittedAt: null })
 
-      if (count > 0) {
-        Logger.info(
-          'Content',
-          `Reset submittedAt for ${count}/${hashes.length} missing products`,
-        )
-      }
-    }, 'ProductManager.resetSubmittedAtForMissingProducts')
+    if (count > 0) {
+      Logger.info(
+        'Content',
+        `Reset submittedAt for ${count}/${hashes.length} missing products`,
+      )
+    }
   }
   /**
    * Saves new products discovered from Glovo pages to the database.

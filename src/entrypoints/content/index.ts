@@ -39,10 +39,6 @@ export default defineContentScript({
         console.log(`Quick test: ${passed ? '✅ PASSED' : '❌ FAILED'}`)
         return passed
       },
-      analyzePage() {
-        Logger.info('Content', '🔍 Starting page analysis...')
-        DomProductScanner.analyzePage()
-      },
       scanNow() {
         Logger.info('Content', '🔍 Starting manual scan...')
         const result = DomProductScanner.scanPage()

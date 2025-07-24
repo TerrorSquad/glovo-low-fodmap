@@ -1,12 +1,12 @@
 import { getProductHash } from '@/utils/ProductHash'
-import type { Product, ProductsResponse } from '@/utils/types/glovo'
+import type { GlovoProduct, ProductsResponse } from '@/utils/types/glovo'
 
 /**
  * Extracts products from Glovo API response data
  */
 export class ProductExtractor {
-  static extractFromResponse(data: ProductsResponse): Product[] {
-    let products: Product[] = []
+  static extractFromResponse(data: ProductsResponse): GlovoProduct[] {
+    let products: GlovoProduct[] = []
 
     if (Array.isArray(data)) {
       data.forEach((item) => {
@@ -14,7 +14,7 @@ export class ProductExtractor {
       })
     } else if (typeof data === 'object' && data !== null) {
       if (data.type === 'PRODUCT_TILE' && data.data) {
-        products.push(data.data as unknown as Product)
+        products.push(data.data as unknown as GlovoProduct)
       } else {
         Object.values(data).forEach((value) => {
           products = products.concat(

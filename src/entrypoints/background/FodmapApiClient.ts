@@ -1,8 +1,8 @@
 import { Config } from '@/utils/Config'
+import { Product } from '@/utils/db'
 import { ErrorBoundary } from '@/utils/ErrorBoundary'
 import { ErrorHandler } from '@/utils/ErrorHandler'
 import { PerformanceMonitor } from '@/utils/PerformanceMonitor'
-import type { Product } from '@/utils/types/glovo'
 
 type ApiRetryOptions = {
   maxAttempts?: number

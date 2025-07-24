@@ -36,10 +36,10 @@ export interface ProductsResponseBodyData {
 
 export interface ProductElement {
   type: string
-  data: Product
+  data: GlovoProduct
 }
 
-export interface Product {
+export interface GlovoProduct {
   /**
    * The category of the product, e.g., "Dairy", "Fruits", etc.
    * This is set based on the title of the data object in the response.

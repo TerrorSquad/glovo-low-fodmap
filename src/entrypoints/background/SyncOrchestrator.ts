@@ -4,11 +4,11 @@ import {
   type StatusResponse,
 } from '@/entrypoints/background/FodmapApiClient'
 import { Config } from '@/utils/Config'
+import { Product } from '@/utils/db'
 import { ErrorBoundary } from '@/utils/ErrorBoundary'
 import { ErrorHandler } from '@/utils/ErrorHandler'
 import { Logger } from '@/utils/Logger'
 import { PerformanceMonitor } from '@/utils/PerformanceMonitor'
-import type { Product } from '@/utils/types/glovo'
 
 type SyncType = 'manual' | 'periodic'
 

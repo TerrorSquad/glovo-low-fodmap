@@ -1,11 +1,11 @@
 import { ProductManager } from '@/entrypoints/content/ProductManager'
 import { StyleManager } from '@/entrypoints/content/StyleManager'
 import { Config } from '@/utils/Config'
+import { Product } from '@/utils/db'
 import { ErrorHandler } from '@/utils/ErrorHandler'
 import { Logger } from '@/utils/Logger'
 import { PerformanceMonitor } from '@/utils/PerformanceMonitor'
 import type { InjectedProductData } from '@/utils/types'
-import type { Product } from '@/utils/types/glovo'
 
 /**
  * Manages DOM operations and visual styling for product cards on Glovo pages.

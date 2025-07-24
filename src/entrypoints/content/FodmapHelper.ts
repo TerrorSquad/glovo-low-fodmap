@@ -7,7 +7,6 @@ import {
 import { ProductManager } from '@/entrypoints/content/ProductManager'
 import { StorageManager } from '@/entrypoints/content/StorageManager'
 import { DiagnosticUtils } from '@/utils/DiagnosticUtils'
-import { ErrorBoundary } from '@/utils/ErrorBoundary'
 import { ErrorHandler } from '@/utils/ErrorHandler'
 import { Logger } from '@/utils/Logger'
 import type { InjectedProductData } from '@/utils/types'
@@ -61,39 +60,15 @@ export class FodmapHelper implements IFodmapHelper {
    * Called by: Content script main entry point after DOM is ready
    */
   async init(): Promise<void> {
-    return (
-      (await ErrorBoundary.protect(
-        async () => {
-          ErrorBoundary.setupDefaultRecoveryStrategies()
-          this.setupEventListeners()
-          await this.loadSettings()
-          await this.loadTooltipFontSize()
+    this.setupEventListeners()
+    await this.loadSettings()
+    await this.loadTooltipFontSize()
 
-          // Perform initial DOM scan for existing products
-          await this.performInitialDomScan()
+    // Perform initial DOM scan for existing products
+    await this.performInitialDomScan()
 
-          // Setup mutation observer for dynamic content
-          this.setupMutationObserver()
-        },
-        'content-init',
-        {
-          maxRetries: 3,
-          retryDelayMs: 1000,
-          onError: (error) => {
-            Logger.warn(
-              'FodmapHelper',
-              `FODMAP Helper initialization failed: ${error.message}`,
-            )
-          },
-          onRecovery: () => {
-            Logger.info(
-              'FodmapHelper',
-              'FODMAP Helper successfully recovered from initialization error',
-            )
-          },
-        },
-      )) ?? Promise.resolve()
-    )
+    // Setup mutation observer for dynamic content
+    this.setupMutationObserver()
   }
 
   /**
@@ -122,12 +97,10 @@ export class FodmapHelper implements IFodmapHelper {
    * Called after classification updates or setting changes.
    */
   async updatePageStyles(): Promise<void> {
-    ;(await ErrorBoundary.protect(async () => {
-      await CardManager.updateAllCards(
-        this.hideNonLowFodmap,
-        this.hideNonFoodItems,
-      )
-    }, 'update-styles')) ?? Promise.resolve()
+    await CardManager.updateAllCards(
+      this.hideNonLowFodmap,
+      this.hideNonFoodItems,
+    )
   }
 
   /**
@@ -248,99 +221,97 @@ export class FodmapHelper implements IFodmapHelper {
    * Uses progressive retry strategy for Nuxt/SPA apps
    */
   private async performInitialDomScan(): Promise<void> {
-    await ErrorBoundary.protect(async () => {
-      Logger.info(
+    Logger.info(
+      'FodmapHelper',
+      '🔍 FODMAP Helper: Starting progressive scan for existing products...',
+    )
+
+    // Progressive retry strategy for SPA/Nuxt apps
+    const maxRetries = 10
+    const retryDelay = 500
+    let attempt = 0
+    let totalFound = 0
+
+    while (attempt < maxRetries) {
+      attempt++
+      const waitTime = retryDelay * attempt // Increasing delay
+
+      Logger.debug(
         'FodmapHelper',
-        '🔍 FODMAP Helper: Starting progressive scan for existing products...',
+        `🔍 FODMAP Helper: Scan attempt ${attempt}/${maxRetries} (waiting ${waitTime}ms)`,
       )
+      await new Promise((resolve) => setTimeout(resolve, waitTime))
 
-      // Progressive retry strategy for SPA/Nuxt apps
-      const maxRetries = 10
-      const retryDelay = 500
-      let attempt = 0
-      let totalFound = 0
+      const scanResult = DomProductScanner.scanPage()
 
-      while (attempt < maxRetries) {
-        attempt++
-        const waitTime = retryDelay * attempt // Increasing delay
-
-        Logger.debug(
+      if (scanResult.extractedProducts > 0) {
+        Logger.info(
           'FodmapHelper',
-          `🔍 FODMAP Helper: Scan attempt ${attempt}/${maxRetries} (waiting ${waitTime}ms)`,
+          `✅ FODMAP Helper: Found ${scanResult.extractedProducts} products on attempt ${attempt}`,
         )
-        await new Promise((resolve) => setTimeout(resolve, waitTime))
 
-        const scanResult = DomProductScanner.scanPage()
+        // Instead of creating new products, look up existing ones in DB by name
+        const productNames = scanResult.products.map((product) =>
+          product.name.trim(),
+        )
+        const existingProducts =
+          await ProductManager.getProductsByNames(productNames)
 
-        if (scanResult.extractedProducts > 0) {
+        if (existingProducts.length > 0) {
           Logger.info(
             'FodmapHelper',
-            `✅ FODMAP Helper: Found ${scanResult.extractedProducts} products on attempt ${attempt}`,
+            `📄 FODMAP Helper: Found ${existingProducts.length} products in database from ${productNames.length} scanned`,
           )
 
-          // Instead of creating new products, look up existing ones in DB by name
-          const productNames = scanResult.products.map((product) =>
-            product.name.trim(),
-          )
-          const existingProducts =
-            await ProductManager.getProductsByNames(productNames)
+          // Tag the cards with their hashes from the database
+          CardManager.tagVisibleCardsByName(existingProducts)
+          await this.updatePageStyles()
 
-          if (existingProducts.length > 0) {
-            Logger.info(
-              'FodmapHelper',
-              `📄 FODMAP Helper: Found ${existingProducts.length} products in database from ${productNames.length} scanned`,
-            )
-
-            // Tag the cards with their hashes from the database
-            CardManager.tagVisibleCardsByName(existingProducts)
-            await this.updatePageStyles()
-
-            totalFound += existingProducts.length
-          } else {
-            Logger.info(
-              'FodmapHelper',
-              `ℹ️ FODMAP Helper: No products found in database for scanned names`,
-            )
-          }
-
-          // If we found products, wait a bit more to see if more load, then break
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          const finalScan = DomProductScanner.scanPage()
-          if (finalScan.extractedProducts <= scanResult.extractedProducts) {
-            Logger.info(
-              'FodmapHelper',
-              `✅ FODMAP Helper: Scan completed with ${totalFound} total products`,
-            )
-            break
-          }
+          totalFound += existingProducts.length
         } else {
           Logger.info(
             'FodmapHelper',
-            `ℹ️ FODMAP Helper: No products found on attempt ${attempt}`,
+            `ℹ️ FODMAP Helper: No products found in database for scanned names`,
           )
         }
 
-        if (scanResult.errors.length > 0) {
-          Logger.warn(
+        // If we found products, wait a bit more to see if more load, then break
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        const finalScan = DomProductScanner.scanPage()
+        if (finalScan.extractedProducts <= scanResult.extractedProducts) {
+          Logger.info(
             'FodmapHelper',
-            `⚠️ FODMAP Helper: Scan attempt ${attempt} had errors:`,
-            { errors: scanResult.errors },
+            `✅ FODMAP Helper: Scan completed with ${totalFound} total products`,
           )
+          break
         }
+      } else {
+        Logger.info(
+          'FodmapHelper',
+          `ℹ️ FODMAP Helper: No products found on attempt ${attempt}`,
+        )
       }
 
-      if (totalFound === 0) {
+      if (scanResult.errors.length > 0) {
         Logger.warn(
           'FodmapHelper',
-          '⚠️ FODMAP Helper: No products found after all retry attempts. Page may not have loaded or selectors may be incorrect.',
-        )
-        Logger.debug('FodmapHelper', '🔍 Debug: Current page HTML structure:')
-        Logger.debug(
-          'FodmapHelper',
-          `${document.body.innerHTML.substring(0, 2000)}...`,
+          `⚠️ FODMAP Helper: Scan attempt ${attempt} had errors:`,
+          { errors: scanResult.errors },
         )
       }
-    }, 'initial-dom-scan')
+    }
+
+    if (totalFound === 0) {
+      Logger.warn(
+        'FodmapHelper',
+        '⚠️ FODMAP Helper: No products found after all retry attempts. Page may not have loaded or selectors may be incorrect.',
+      )
+      Logger.debug('FodmapHelper', '🔍 Debug: Current page HTML structure:')
+      Logger.debug(
+        'FodmapHelper',
+        `${document.body.innerHTML.substring(0, 2000)}...`,
+      )
+    }
   }
 
   /**
@@ -357,26 +328,24 @@ export class FodmapHelper implements IFodmapHelper {
    */
   private setupMutationObserver(): void {
     DomProductScanner.setupMutationObserver(async (products) => {
-      await ErrorBoundary.protect(async () => {
-        Logger.debug(
+      Logger.debug(
+        'FodmapHelper',
+        `🔍 FODMAP Helper: Detected ${products.length} new products via DOM changes`,
+      )
+
+      // Look up existing products in DB by name instead of creating new ones
+      const productNames = products.map((product) => product.name.trim())
+      const existingProducts =
+        await ProductManager.getProductsByNames(productNames)
+
+      if (existingProducts.length > 0) {
+        Logger.info(
           'FodmapHelper',
-          `🔍 FODMAP Helper: Detected ${products.length} new products via DOM changes`,
+          `📄 FODMAP Helper: Found ${existingProducts.length} new products in database`,
         )
-
-        // Look up existing products in DB by name instead of creating new ones
-        const productNames = products.map((product) => product.name.trim())
-        const existingProducts =
-          await ProductManager.getProductsByNames(productNames)
-
-        if (existingProducts.length > 0) {
-          Logger.info(
-            'FodmapHelper',
-            `📄 FODMAP Helper: Found ${existingProducts.length} new products in database`,
-          )
-          CardManager.tagVisibleCardsByName(existingProducts)
-          await this.updatePageStyles()
-        }
-      }, 'mutation-products')
+        CardManager.tagVisibleCardsByName(existingProducts)
+        await this.updatePageStyles()
+      }
     })
   }
 }

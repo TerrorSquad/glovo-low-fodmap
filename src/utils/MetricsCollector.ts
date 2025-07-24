@@ -52,27 +52,6 @@ export class MetricsCollector {
   }
 
   /**
-   * Records a user action
-   */
-  static recordUserAction(
-    action: string,
-    metadata?: Record<string, unknown>,
-  ): void {
-    MetricsCollector.record(`user.${action}`, 1, metadata)
-  }
-
-  /**
-   * Records a performance metric
-   */
-  static recordPerformance(
-    operation: string,
-    durationMs: number,
-    metadata?: Record<string, unknown>,
-  ): void {
-    MetricsCollector.record(`performance.${operation}`, durationMs, metadata)
-  }
-
-  /**
    * Records an error occurrence
    */
   static recordError(

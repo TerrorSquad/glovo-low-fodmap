@@ -1,5 +1,4 @@
 import { Config } from './Config'
-import { ErrorBoundary } from './ErrorBoundary'
 import { ErrorHandler } from './ErrorHandler'
 import { Logger } from './Logger'
 import { MetricsCollector } from './MetricsCollector'
@@ -49,9 +48,6 @@ export class ExtensionTester {
 
     // Performance tests
     suites.push(await ExtensionTester.runPerformanceTests())
-
-    // Error handling tests
-    suites.push(await ExtensionTester.runErrorHandlingTests())
 
     // Log summary
     const totalTests = suites.reduce(
@@ -344,88 +340,6 @@ export class ExtensionTester {
 
     return {
       name: 'Performance',
-      tests,
-      passed,
-      duration,
-    }
-  }
-
-  /**
-   * Tests error handling capabilities
-   */
-  private static async runErrorHandlingTests(): Promise<TestSuite> {
-    const tests: TestResult[] = []
-    const startTime = Date.now()
-
-    // Test ErrorBoundary protection
-    tests.push(
-      await ExtensionTester.runTest('error-boundary-protection', async () => {
-        let errorCaught = false
-
-        const result = await ErrorBoundary.protect(
-          async () => {
-            throw new Error('Test error for error boundary')
-          },
-          'test-context',
-          {
-            maxRetries: 1,
-            onError: () => {
-              errorCaught = true
-            },
-          },
-        )
-
-        if (result !== null) {
-          throw new Error(
-            'ErrorBoundary should have returned null for failed operation',
-          )
-        }
-
-        if (!errorCaught) {
-          throw new Error('Error callback was not called')
-        }
-
-        return { errorBoundaryWorking: true }
-      }),
-    )
-
-    // Test ErrorBoundary recovery
-    tests.push(
-      await ExtensionTester.runTest('error-boundary-recovery', async () => {
-        let attempts = 0
-
-        const result = await ErrorBoundary.protect(
-          async () => {
-            attempts++
-            if (attempts < 2) {
-              throw new Error('Simulated failure')
-            }
-            return 'success'
-          },
-          'test-recovery',
-          {
-            maxRetries: 3,
-            retryDelayMs: 10, // Fast retry for testing
-          },
-        )
-
-        if (result !== 'success') {
-          throw new Error('ErrorBoundary failed to recover after retry')
-        }
-
-        if (attempts !== 2) {
-          throw new Error(`Expected 2 attempts, got ${attempts}`)
-        }
-
-        return { recoveryWorking: true, attempts }
-      }),
-    )
-
-    const duration = Date.now() - startTime
-    const passed = tests.every((t) => t.passed)
-
-    return {
-      name: 'Error Handling',
       tests,
       passed,
       duration,

@@ -28,11 +28,6 @@ This is a Chrome Extension (Manifest v3) that helps users identify FODMAP-friend
 - **Message Format**: `ChromeMessage` interface with `action` and `payload/data`
 - **Async Handling**: Always return `true` from message handlers for async responses
 
-### 3. **Error Boundary System**
-- **Location**: `src/shared/ErrorBoundary.ts`
-- **Usage**: Wrap all async operations with `ErrorBoundary.protect()`
-- **Recovery**: Automatic retry with exponential backoff
-- **Critical**: Always use for Chrome API calls and IndexedDB operations
 
 ## Build System & Development
 
@@ -93,7 +88,6 @@ src/
 - **Dark Mode**: CSS variables with `dark:` Tailwind classes
 
 ### 4. **Error Handling**
-- **Pattern**: Use `ErrorBoundary.protect()` for all async operations
 - **Logging**: `DiagnosticUtils.log()` with levels (log/info/warn/error)
 - **Recovery**: Implement graceful degradation for API failures
 - **User Feedback**: Always show status in popup for long operations
@@ -130,12 +124,6 @@ export class ExampleManager {
     }
     return this.instance
   }
-  
-  async init(): Promise<void> {
-    return ErrorBoundary.protect(async () => {
-      // Initialization logic
-    }, 'ExampleManager.init')
-  }
 }
 ```
 
@@ -159,19 +147,6 @@ handleMessage = (
 }
 ```
 
-### 3. **DOM Manipulation**
-```typescript
-// Safe DOM operations with error handling
-private async updateProductCard(element: HTMLElement): Promise<void> {
-  return ErrorBoundary.protect(async () => {
-    // Check if element still exists
-    if (!element.isConnected) return
-    
-    // Apply changes
-    element.classList.add('fodmap-processed')
-  }, 'updateProductCard')
-}
-```
 
 ### 4. **Storage Operations**
 ```typescript

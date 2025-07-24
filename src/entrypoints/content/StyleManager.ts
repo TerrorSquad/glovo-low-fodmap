@@ -1,6 +1,5 @@
 import type { FodmapStatus } from '@/utils/db'
 import { ErrorHandler } from '@/utils/ErrorHandler'
-import { PerformanceMonitor } from '@/utils/PerformanceMonitor'
 
 /**
  * Configuration object for badge appearance and accessibility properties
@@ -90,46 +89,37 @@ export class StyleManager {
     product: { status: FodmapStatus; explanation?: string; isFood?: boolean },
     shouldHide: boolean,
   ): void {
-    PerformanceMonitor.measure(
-      'applyToCard',
-      () => {
-        try {
-          const currentStatus = card.dataset.fodmapStatus
-          const isCurrentlyHidden = card.classList.contains(
-            StyleManager.CSS_CLASSES.CARD_HIDDEN,
-          )
-          const hasBadge =
-            card.querySelector(`.${StyleManager.CSS_CLASSES.BADGE}`) !== null
-          const shouldShowBadge =
-            StyleManager.STATUS_CONFIG[product.status] !== null
+    try {
+      const currentStatus = card.dataset.fodmapStatus
+      const isCurrentlyHidden = card.classList.contains(
+        StyleManager.CSS_CLASSES.CARD_HIDDEN,
+      )
+      const hasBadge =
+        card.querySelector(`.${StyleManager.CSS_CLASSES.BADGE}`) !== null
+      const shouldShowBadge =
+        StyleManager.STATUS_CONFIG[product.status] !== null
 
-          // Skip if no changes needed
-          if (
-            currentStatus === product.status &&
-            isCurrentlyHidden === shouldHide &&
-            hasBadge === shouldShowBadge
-          ) {
-            return
-          }
+      // Skip if no changes needed
+      if (
+        currentStatus === product.status &&
+        isCurrentlyHidden === shouldHide &&
+        hasBadge === shouldShowBadge
+      ) {
+        return
+      }
 
-          StyleManager.resetCard(card)
-          StyleManager.applyStatus(card, product.status, product.explanation)
-          StyleManager.applyVisibility(card, shouldHide)
+      StyleManager.resetCard(card)
+      StyleManager.applyStatus(card, product.status, product.explanation)
+      StyleManager.applyVisibility(card, shouldHide)
 
-          card.dataset.fodmapStatus = product.status
-          card.dataset.fodmapStyleApplied = 'true'
-        } catch (error) {
-          ErrorHandler.logError('Content', error, {
-            context: 'Style application',
-            metadata: { status: product.status, shouldHide },
-          })
-        }
-      },
-      {
-        debugOnly: true, // Only log in debug mode to reduce spam
-        threshold: 1, // Only log if it takes more than 1ms
-      },
-    )
+      card.dataset.fodmapStatus = product.status
+      card.dataset.fodmapStyleApplied = 'true'
+    } catch (error) {
+      ErrorHandler.logError('Content', error, {
+        context: 'Style application',
+        metadata: { status: product.status, shouldHide },
+      })
+    }
   }
 
   /**

@@ -47,32 +47,32 @@ export class StyleManager {
     LOW: {
       title: 'Low-FODMAP - Safe to eat',
       icon: '✓',
-      className: StyleManager.CSS_CLASSES.BADGE,
+      className: this.CSS_CLASSES.BADGE,
       ariaLabel: 'This product is low in FODMAPs and suitable for the diet',
     },
     MODERATE: {
       title: 'Moderate-FODMAP - Consume with caution',
       icon: '⚠',
-      className: `${StyleManager.CSS_CLASSES.BADGE} ${StyleManager.CSS_CLASSES.BADGE_MODERATE}`,
+      className: `${this.CSS_CLASSES.BADGE} ${this.CSS_CLASSES.BADGE_MODERATE}`,
       ariaLabel:
         'This product has moderate FODMAP content - consume in small portions',
     },
     HIGH: {
       title: 'High-FODMAP - Avoid',
       icon: '✗',
-      className: `${StyleManager.CSS_CLASSES.BADGE} ${StyleManager.CSS_CLASSES.BADGE_HIGH}`,
+      className: `${this.CSS_CLASSES.BADGE} ${this.CSS_CLASSES.BADGE_HIGH}`,
       ariaLabel: 'This product is high in FODMAPs and should be avoided',
     },
     UNKNOWN: {
       title: 'FODMAP status unknown',
       icon: '?',
-      className: `${StyleManager.CSS_CLASSES.BADGE} ${StyleManager.CSS_CLASSES.BADGE_UNKNOWN}`,
+      className: `${this.CSS_CLASSES.BADGE} ${this.CSS_CLASSES.BADGE_UNKNOWN}`,
       ariaLabel: 'FODMAP status for this product is not yet determined',
     },
     PENDING: {
       title: 'Analyzing FODMAP content...',
       icon: '⋯',
-      className: `${StyleManager.CSS_CLASSES.BADGE} ${StyleManager.CSS_CLASSES.BADGE_PENDING}`,
+      className: `${this.CSS_CLASSES.BADGE} ${this.CSS_CLASSES.BADGE_PENDING}`,
       ariaLabel: 'FODMAP classification is currently being processed',
     },
   }

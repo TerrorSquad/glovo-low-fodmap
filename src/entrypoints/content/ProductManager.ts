@@ -2,7 +2,6 @@ import { db, type Product } from '@/utils/db'
 import { ErrorBoundary } from '@/utils/ErrorBoundary'
 import { ErrorHandler } from '@/utils/ErrorHandler'
 import { Logger } from '@/utils/Logger'
-import { PerformanceMonitor } from '@/utils/PerformanceMonitor'
 import { getProductHash } from '@/utils/ProductHash'
 import type { InjectedProductData } from '@/utils/types'
 

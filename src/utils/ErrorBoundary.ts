@@ -1,4 +1,3 @@
-import { Config } from './Config'
 import { ErrorHandler } from './ErrorHandler'
 import { Logger } from './Logger'
 import { MetricsCollector } from './MetricsCollector'

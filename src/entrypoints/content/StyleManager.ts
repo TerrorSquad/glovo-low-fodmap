@@ -1,6 +1,5 @@
 import type { FodmapStatus } from '@/utils/db'
 import { ErrorHandler } from '@/utils/ErrorHandler'
-import { PerformanceMonitor } from '@/utils/PerformanceMonitor'
 
 /**
  * Configuration object for badge appearance and accessibility properties

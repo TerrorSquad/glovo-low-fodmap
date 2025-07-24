@@ -11,6 +11,11 @@ export default defineConfig({
     "@": "/src",
   },
   manifest: {
+    browser_specific_settings: {
+      gecko: {
+        id: "glovolowfodmaphelper@goranninkovic.com",
+      },
+    },
     name: "Glovo Low-FODMAP Helper",
     version: pkg.version,
     description:

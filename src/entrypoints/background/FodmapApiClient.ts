@@ -114,55 +114,34 @@ export class FodmapApiClient {
       backoffMultiplier = 2,
     } = options
 
-    return await PerformanceMonitor.measureAsync(
-      'pollProductStatus',
-      async () => {
-        return (
-          (await ErrorBoundary.protect(async () => {
-            if (!hashes.length) {
-              return { results: [], found: 0, missing: 0, missingHashes: [] }
-            }
+    if (!hashes.length) {
+      return { results: [], found: 0, missing: 0, missingHashes: [] }
+    }
 
-            const batches = this.createBatches(hashes, Config.POLL_BATCH_SIZE)
-            const allResults: StatusResponse['results'] = []
-            let totalFound = 0
-            let totalMissing = 0
-            const allMissingHashes: string[] = []
+    const batches = this.createBatches(hashes, Config.POLL_BATCH_SIZE)
+    const allResults: StatusResponse['results'] = []
+    let totalFound = 0
+    let totalMissing = 0
+    const allMissingHashes: string[] = []
 
-            for (const batch of batches) {
-              const result = await this.pollBatch(batch, {
-                maxAttempts,
-                delayMs,
-                backoffMultiplier,
-              })
-              allResults.push(...result.results)
-              totalFound += result.found
-              totalMissing += result.missing
-              allMissingHashes.push(...result.missingHashes)
-            }
+    for (const batch of batches) {
+      const result = await this.pollBatch(batch, {
+        maxAttempts,
+        delayMs,
+        backoffMultiplier,
+      })
+      allResults.push(...result.results)
+      totalFound += result.found
+      totalMissing += result.missing
+      allMissingHashes.push(...result.missingHashes)
+    }
 
-            return {
-              results: allResults,
-              found: totalFound,
-              missing: totalMissing,
-              missingHashes: allMissingHashes,
-            }
-          }, 'FodmapApiClient.pollProductStatus')) || {
-            results: [],
-            found: 0,
-            missing: 0,
-            missingHashes: [],
-          }
-        )
-      },
-      {
-        threshold: 1000,
-        metadata: {
-          productCount: hashes.length,
-          batchCount: this.createBatches(hashes, Config.POLL_BATCH_SIZE).length,
-        },
-      },
-    )
+    return {
+      results: allResults,
+      found: totalFound,
+      missing: totalMissing,
+      missingHashes: allMissingHashes,
+    }
   }
 
   private async submitBatch(

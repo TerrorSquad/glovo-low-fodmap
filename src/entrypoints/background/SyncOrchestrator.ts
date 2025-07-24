@@ -303,78 +303,68 @@ export class SyncOrchestrator {
 
   private async performStatusPoll(): Promise<StatusResponse | undefined> {
     let statusResult: StatusResponse | undefined
-    await PerformanceMonitor.measureAsync(
-      'performStatusPoll',
-      async () => {
-        await ErrorBoundary.protect(async () => {
-          if (this.isPolling) {
-            return
-          }
+    if (this.isPolling) {
+      return
+    }
 
-          if (!this.apiClient.isConfigured()) {
-            return
-          }
+    if (!this.apiClient.isConfigured()) {
+      return
+    }
 
-          this.isPolling = true
+    this.isPolling = true
 
-          const tab = await ContentMessenger.findActiveGlovoTab()
-          if (!tab?.id) {
-            return
-          }
+    const tab = await ContentMessenger.findActiveGlovoTab()
+    if (!tab?.id) {
+      return
+    }
 
-          // Get products that have been submitted but not yet processed
-          const submittedUnprocessedProducts =
-            await ContentMessenger.getSubmittedUnprocessedProducts()
-          const hashes = submittedUnprocessedProducts.map((p) => p.hash)
+    // Get products that have been submitted but not yet processed
+    const submittedUnprocessedProducts =
+      await ContentMessenger.getSubmittedUnprocessedProducts()
+    const hashes = submittedUnprocessedProducts.map((p) => p.hash)
 
-          if (!hashes.length) {
-            return
-          }
+    if (!hashes.length) {
+      return
+    }
 
-          // Poll for status updates
-          statusResult = await this.apiClient.pollProductStatus(hashes)
-          if (statusResult.results.length > 0) {
-            // Update products with new statuses (only non-PENDING)
-            const updatedProducts = statusResult.results
-              .filter((apiProduct: any) => apiProduct.status !== 'PENDING') // Only update completed classifications
-              .map((apiProduct: any) => {
-                const originalProduct = submittedUnprocessedProducts.find(
-                  (p: Product) => p.hash === apiProduct.nameHash,
-                )
-                if (!originalProduct) return null
+    // Poll for status updates
+    statusResult = await this.apiClient.pollProductStatus(hashes)
+    if (statusResult.results.length > 0) {
+      // Update products with new statuses (only non-PENDING)
+      const updatedProducts = statusResult.results
+        .filter((apiProduct: any) => apiProduct.status !== 'PENDING') // Only update completed classifications
+        .map((apiProduct: any) => {
+          const originalProduct = submittedUnprocessedProducts.find(
+            (p: Product) => p.hash === apiProduct.nameHash,
+          )
+          if (!originalProduct) return null
 
-                return {
-                  ...originalProduct,
-                  status: apiProduct.status, // Status is already in correct format (LOW/HIGH/UNKNOWN/PENDING)
-                  processedAt: apiProduct.processedAt
-                    ? new Date(apiProduct.processedAt)
-                    : new Date(),
-                  explanation: apiProduct.explanation, // Serbian explanation of FODMAP status
-                  isFood: apiProduct.isFood, // Whether product is food or not
-                } as Product
-              })
-              .filter((product: any): product is Product => product !== null)
+          return {
+            ...originalProduct,
+            status: apiProduct.status, // Status is already in correct format (LOW/HIGH/UNKNOWN/PENDING)
+            processedAt: apiProduct.processedAt
+              ? new Date(apiProduct.processedAt)
+              : new Date(),
+            explanation: apiProduct.explanation, // Serbian explanation of FODMAP status
+            isFood: apiProduct.isFood, // Whether product is food or not
+          } as Product
+        })
+        .filter((product: any): product is Product => product !== null)
 
-            if (updatedProducts.length > 0) {
-              await ContentMessenger.updateProductStatuses(updatedProducts)
+      if (updatedProducts.length > 0) {
+        await ContentMessenger.updateProductStatuses(updatedProducts)
 
-              Logger.info(
-                'Background',
-                `Status poll completed: ${updatedProducts.length} products updated (${statusResult.found} found, ${statusResult.missing} missing)`,
-              )
-            } else if (statusResult.results.length > 0) {
-              Logger.info(
-                'Background',
-                `Status poll completed: All ${statusResult.results.length} products still pending`,
-              )
-            }
-          }
-        }, 'SyncOrchestrator.performStatusPoll')
-      },
-      {
-        threshold: 1000,
-      },
-    )
+        Logger.info(
+          'Background',
+          `Status poll completed: ${updatedProducts.length} products updated (${statusResult.found} found, ${statusResult.missing} missing)`,
+        )
+      } else if (statusResult.results.length > 0) {
+        Logger.info(
+          'Background',
+          `Status poll completed: All ${statusResult.results.length} products still pending`,
+        )
+      }
+    }
     this.isPolling = false
     return statusResult
   }

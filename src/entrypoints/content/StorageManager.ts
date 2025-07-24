@@ -29,7 +29,7 @@ export class StorageManager {
   static async getHideNonLowFodmap(): Promise<boolean> {
     return new Promise((resolve) => {
       chrome.storage.sync.get({ hideNonLowFodmap: false }, (data) => {
-        resolve(!!data.hideNonLowFodmap)
+        resolve(!!data?.hideNonLowFodmap)
       })
     })
   }
@@ -60,7 +60,7 @@ export class StorageManager {
   static async getHideNonFoodItems(): Promise<boolean> {
     return new Promise((resolve) => {
       chrome.storage.sync.get({ hideNonFoodItems: false }, (data) => {
-        resolve(!!data.hideNonFoodItems)
+        resolve(!!data?.hideNonFoodItems)
       })
     })
   }

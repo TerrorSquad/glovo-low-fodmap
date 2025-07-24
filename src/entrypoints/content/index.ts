@@ -77,7 +77,7 @@ export default defineContentScript({
     // Message listener for popup communications
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (message.action === 'updateTooltipFontSize') {
-        updateTooltipFontSize(message.fontSize)
+        updateTooltipFontSize(Number(message.fontSize))
         sendResponse({ success: true })
       }
       return true // Keep message channel open for async response

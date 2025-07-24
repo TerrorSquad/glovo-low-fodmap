@@ -191,7 +191,7 @@ export class FodmapHelper implements IFodmapHelper {
   private async loadTooltipFontSize(): Promise<void> {
     try {
       const result = await chrome.storage.sync.get({ tooltipFontSize: 13 })
-      const fontSize = result.tooltipFontSize as number
+      const fontSize = Number(result.tooltipFontSize) as number
 
       // Apply font size by creating CSS style
       const style = document.createElement('style')
@@ -337,7 +337,7 @@ export class FodmapHelper implements IFodmapHelper {
         Logger.debug('FodmapHelper', '🔍 Debug: Current page HTML structure:')
         Logger.debug(
           'FodmapHelper',
-          document.body.innerHTML.substring(0, 2000) + '...',
+          `${document.body.innerHTML.substring(0, 2000)}...`,
         )
       }
     }, 'initial-dom-scan')

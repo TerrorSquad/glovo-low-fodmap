@@ -319,39 +319,33 @@ export class MessageHandler {
   private async handleGetProductStatistics(
     sendResponse: (response?: any) => void,
   ): Promise<void> {
-    return await PerformanceMonitor.measureAsync(
-      'handleGetProductStatistics',
-      async () => {
-        try {
-          const allProducts = await ProductManager.getAllProducts()
-          const lowFodmapProducts = allProducts.filter(
-            (p: Product) => p.status === 'LOW',
-          )
+    try {
+      const allProducts = await ProductManager.getAllProducts()
+      const lowFodmapProducts = allProducts.filter(
+        (p: Product) => p.status === 'LOW',
+      )
 
-          const statistics = {
-            total: allProducts.length,
-            lowFodmap: lowFodmapProducts.length,
-            high: allProducts.filter((p: Product) => p.status === 'HIGH')
-              .length,
-            unknown: allProducts.filter((p: Product) => p.status === 'UNKNOWN')
-              .length,
-            pending: allProducts.filter((p: Product) => p.status === 'PENDING')
-              .length,
-          }
+      const statistics = {
+        total: allProducts.length,
+        lowFodmap: lowFodmapProducts.length,
+        high: allProducts.filter((p: Product) => p.status === 'HIGH').length,
+        unknown: allProducts.filter((p: Product) => p.status === 'UNKNOWN')
+          .length,
+        pending: allProducts.filter((p: Product) => p.status === 'PENDING')
+          .length,
+      }
 
-          sendResponse(statistics)
-          Logger.info(
-            'Content',
-            `Sent statistics to popup: ${statistics.total} total, ${statistics.lowFodmap} low FODMAP`,
-          )
-        } catch (error) {
-          ErrorHandler.logError('Content', error, {
-            context: 'Getting product statistics',
-          })
-          sendResponse({ total: 0, lowFodmap: 0 })
-        }
-      },
-    )
+      sendResponse(statistics)
+      Logger.info(
+        'Content',
+        `Sent statistics to popup: ${statistics.total} total, ${statistics.lowFodmap} low FODMAP`,
+      )
+    } catch (error) {
+      ErrorHandler.logError('Content', error, {
+        context: 'Getting product statistics',
+      })
+      sendResponse({ total: 0, lowFodmap: 0 })
+    }
   }
 
   /**

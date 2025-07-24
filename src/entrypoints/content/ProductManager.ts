@@ -43,52 +43,47 @@ export class ProductManager {
    * @param products - Array of product data extracted from Glovo pages
    */
   static async saveNewProducts(products: InjectedProductData[]): Promise<void> {
-    return await PerformanceMonitor.measureAsync(
-      'saveNewProducts',
-      async () => {
-        const incomingProducts: Product[] = products.map((p) => ({
-          name: p.name,
-          hash: getProductHash(p.name),
-          price: p.price,
-          category: p.category || 'Uncategorized',
-          status: p.status || 'PENDING',
-        }))
+    const incomingProducts: Product[] = products.map((p) => ({
+      name: p.name,
+      hash: getProductHash(p.name),
+      price: p.price,
+      category: p.category || 'Uncategorized',
+      status: p.status || 'PENDING',
+    }))
 
-        const incomingHashes = incomingProducts.map((p) => p.hash)
+    const incomingHashes = incomingProducts.map((p) => p.hash)
 
-        try {
-          await db.transaction('rw', db.products, async () => {
-            const existingProducts = await db.products
-              .where('hash')
-              .anyOf(incomingHashes)
-              .toArray()
+    try {
+      await db.transaction('rw', db.products, async () => {
+        const existingProducts = await db.products
+          .where('hash')
+          .anyOf(incomingHashes)
+          .toArray()
 
-            const existingHashes = new Set(existingProducts.map((p) => p.hash))
-            const newProductsToDb = incomingProducts.filter(
-              (p) => !existingHashes.has(p.hash),
-            )
+        const existingHashes = new Set(existingProducts.map((p) => p.hash))
+        const newProductsToDb = incomingProducts.filter(
+          (p) => !existingHashes.has(p.hash),
+        )
 
-            if (newProductsToDb.length > 0) {
-              await db.products.bulkAdd(newProductsToDb)
-              Logger.info(
-                'Content',
-                `Added ${newProductsToDb.length} new products to database`,
-              )
-              chrome.runtime.sendMessage({
-                action: 'newProductsFound',
-                data: {
-                  newProductHashes: newProductsToDb.map((p) => p.hash),
-                },
-              })
-            }
-          })
-        } catch (error) {
-          ErrorHandler.logError('Content', error, {
-            context: 'Dexie transaction',
+        if (newProductsToDb.length > 0) {
+          await db.products.bulkAdd(newProductsToDb)
+          Logger.info(
+            'Content',
+            `Added ${newProductsToDb.length} new products to database`,
+          )
+          chrome.runtime.sendMessage({
+            action: 'newProductsFound',
+            data: {
+              newProductHashes: newProductsToDb.map((p) => p.hash),
+            },
           })
         }
-      },
-    )
+      })
+    } catch (error) {
+      ErrorHandler.logError('Content', error, {
+        context: 'Dexie transaction',
+      })
+    }
   }
 
   /**
@@ -99,62 +94,60 @@ export class ProductManager {
    * @param apiProducts - Products with updated status information from the API
    */
   static async updateStatuses(apiProducts: Product[]): Promise<void> {
-    return await PerformanceMonitor.measureAsync('updateStatuses', async () => {
-      try {
-        await db.transaction('rw', db.products, async () => {
-          const hashes = apiProducts.map((p) => p.hash)
-          const localProducts = await db.products
-            .where('hash')
-            .anyOf(hashes)
-            .toArray()
+    try {
+      await db.transaction('rw', db.products, async () => {
+        const hashes = apiProducts.map((p) => p.hash)
+        const localProducts = await db.products
+          .where('hash')
+          .anyOf(hashes)
+          .toArray()
 
-          const localProductMap = new Map(localProducts.map((p) => [p.hash, p]))
-          const finalUpdates: Product[] = []
+        const localProductMap = new Map(localProducts.map((p) => [p.hash, p]))
+        const finalUpdates: Product[] = []
 
-          for (const apiProduct of apiProducts) {
-            const localProduct = localProductMap.get(apiProduct.hash)
-            if (localProduct) {
-              localProduct.status = apiProduct.status
+        for (const apiProduct of apiProducts) {
+          const localProduct = localProductMap.get(apiProduct.hash)
+          if (localProduct) {
+            localProduct.status = apiProduct.status
 
-              // Update submittedAt if provided
-              if (apiProduct.submittedAt !== undefined) {
-                localProduct.submittedAt = apiProduct.submittedAt
-              }
-
-              // Update processedAt if provided
-              if (apiProduct.processedAt !== undefined) {
-                localProduct.processedAt = apiProduct.processedAt
-              }
-
-              // Update explanation if provided
-              if (apiProduct.explanation !== undefined) {
-                localProduct.explanation = apiProduct.explanation
-              }
-
-              // Update isFood if provided
-              if (apiProduct.isFood !== undefined) {
-                localProduct.isFood = apiProduct.isFood
-              }
-
-              finalUpdates.push(localProduct)
+            // Update submittedAt if provided
+            if (apiProduct.submittedAt !== undefined) {
+              localProduct.submittedAt = apiProduct.submittedAt
             }
-          }
 
-          if (finalUpdates.length > 0) {
-            await db.products.bulkPut(finalUpdates)
-            Logger.info(
-              'Content',
-              `Updated ${finalUpdates.length} product statuses from API`,
-            )
+            // Update processedAt if provided
+            if (apiProduct.processedAt !== undefined) {
+              localProduct.processedAt = apiProduct.processedAt
+            }
+
+            // Update explanation if provided
+            if (apiProduct.explanation !== undefined) {
+              localProduct.explanation = apiProduct.explanation
+            }
+
+            // Update isFood if provided
+            if (apiProduct.isFood !== undefined) {
+              localProduct.isFood = apiProduct.isFood
+            }
+
+            finalUpdates.push(localProduct)
           }
-        })
-      } catch (error) {
-        ErrorHandler.logError('Content', error, {
-          context: 'Database status update',
-        })
-        throw error
-      }
-    })
+        }
+
+        if (finalUpdates.length > 0) {
+          await db.products.bulkPut(finalUpdates)
+          Logger.info(
+            'Content',
+            `Updated ${finalUpdates.length} product statuses from API`,
+          )
+        }
+      })
+    } catch (error) {
+      ErrorHandler.logError('Content', error, {
+        context: 'Database status update',
+      })
+      throw error
+    }
   }
 
   /**

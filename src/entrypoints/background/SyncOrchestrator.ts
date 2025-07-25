@@ -5,10 +5,8 @@ import {
 } from '@/entrypoints/background/FodmapApiClient'
 import { Config } from '@/utils/Config'
 import { Product } from '@/utils/db'
-import { ErrorBoundary } from '@/utils/ErrorBoundary'
 import { ErrorHandler } from '@/utils/ErrorHandler'
 import { Logger } from '@/utils/Logger'
-import { PerformanceMonitor } from '@/utils/PerformanceMonitor'
 
 type SyncType = 'manual' | 'periodic'
 
@@ -36,48 +34,44 @@ export class SyncOrchestrator {
   }
 
   async startPeriodicSync(): Promise<void> {
-    await ErrorBoundary.protect(async () => {
-      if (this.syncInterval) {
-        return
-      }
+    if (this.syncInterval) {
+      return
+    }
 
-      Logger.info('Background', 'Starting periodic sync and polling')
+    Logger.info('Background', 'Starting periodic sync and polling')
 
-      // Start submit sync (for unsubmitted products)
-      this.syncInterval = setInterval(() => {
-        this.performSubmitSync('periodic').catch((error: unknown) => {
-          ErrorHandler.logError('Background', error, {
-            context: 'Periodic submit sync',
-          })
+    // Start submit sync (for unsubmitted products)
+    this.syncInterval = setInterval(() => {
+      this.performSubmitSync('periodic').catch((error: unknown) => {
+        ErrorHandler.logError('Background', error, {
+          context: 'Periodic submit sync',
         })
-      }, Config.SYNC_INTERVAL)
+      })
+    }, Config.SYNC_INTERVAL)
 
-      // Start status polling (for previously submitted products)
-      this.pollInterval = setInterval(() => {
-        this.performStatusPoll().catch((error: unknown) => {
-          ErrorHandler.logError('Background', error, {
-            context: 'Periodic status polling',
-          })
+    // Start status polling (for previously submitted products)
+    this.pollInterval = setInterval(() => {
+      this.performStatusPoll().catch((error: unknown) => {
+        ErrorHandler.logError('Background', error, {
+          context: 'Periodic status polling',
         })
-      }, Config.SYNC_POLL_INTERVAL)
+      })
+    }, Config.SYNC_POLL_INTERVAL)
 
-      // Perform initial sync
-      await this.performSubmitSync('periodic')
-    }, 'SyncOrchestrator.startPeriodicSync')
+    // Perform initial sync
+    await this.performSubmitSync('periodic')
   }
 
   async stopPeriodicSync(): Promise<void> {
-    await ErrorBoundary.protect(async () => {
-      if (this.syncInterval) {
-        clearInterval(this.syncInterval)
-        this.syncInterval = undefined
-      }
-      if (this.pollInterval) {
-        clearInterval(this.pollInterval)
-        this.pollInterval = undefined
-      }
-      Logger.info('Background', 'Stopped periodic sync and polling')
-    }, 'SyncOrchestrator.stopPeriodicSync')
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval)
+      this.syncInterval = undefined
+    }
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval)
+      this.pollInterval = undefined
+    }
+    Logger.info('Background', 'Stopped periodic sync and polling')
   }
 
   async syncWithApi(): Promise<void> {
@@ -98,206 +92,176 @@ export class SyncOrchestrator {
    * @param hashes - The hashes of the products to reset.
    */
   async resetSubmittedAtForMissingProducts(hashes: string[]): Promise<void> {
-    await ErrorBoundary.protect(async () => {
-      if (this.isPolling) {
-        return
-      }
+    if (this.isPolling) {
+      return
+    }
 
-      if (!this.apiClient.isConfigured()) {
-        return
-      }
+    if (!this.apiClient.isConfigured()) {
+      return
+    }
 
-      this.isPolling = true
+    this.isPolling = true
 
-      const tab = await ContentMessenger.findActiveGlovoTab()
-      if (!tab?.id) {
-        return
-      }
+    const tab = await ContentMessenger.findActiveGlovoTab()
+    if (!tab?.id) {
+      return
+    }
 
-      await ContentMessenger.resetSubmittedAtForMissingProducts(hashes)
-    }, 'SyncOrchestrator.resetSubmittedAtForMissingProducts')
+    await ContentMessenger.resetSubmittedAtForMissingProducts(hashes)
   }
 
   private async performSpecificProductsSync(hashes: string[]): Promise<void> {
-    await PerformanceMonitor.measureAsync(
-      'performSpecificProductsSync',
-      async () => {
-        await ErrorBoundary.protect(async () => {
-          if (this.isSyncing) {
-            Logger.info(
-              'Background',
-              'Submit sync already in progress, skipping specific products sync',
-            )
-            return
-          }
+    if (this.isSyncing) {
+      Logger.info(
+        'Background',
+        'Submit sync already in progress, skipping specific products sync',
+      )
+      return
+    }
 
-          this.isSyncing = true
+    this.isSyncing = true
 
-          const tab = await ContentMessenger.findActiveGlovoTab()
-          if (!tab?.id) {
-            Logger.info(
-              'Background',
-              'No active Glovo tab found for specific products sync',
-            )
-            return
-          }
+    const tab = await ContentMessenger.findActiveGlovoTab()
+    if (!tab?.id) {
+      Logger.info(
+        'Background',
+        'No active Glovo tab found for specific products sync',
+      )
+      return
+    }
 
-          // Get specific products by their hashes
-          const allProducts = await ContentMessenger.getProductsByHashes(hashes)
+    // Get specific products by their hashes
+    const allProducts = await ContentMessenger.getProductsByHashes(hashes)
 
-          // Filter to only unsubmitted products (no submittedAt AND status is UNKNOWN/PENDING)
-          const productsToSubmit = allProducts.filter(
-            (product) =>
-              (product.submittedAt === null ||
-                product.submittedAt === undefined) &&
-              (product.status === 'UNKNOWN' || product.status === 'PENDING'),
-          )
-
-          if (!productsToSubmit.length) {
-            Logger.info(
-              'Background',
-              `No unsubmitted products found for specific sync with hashes: ${hashes.join(', ')}`,
-            )
-            return
-          }
-
-          Logger.info(
-            'Background',
-            `Starting specific products sync for ${productsToSubmit.length} unsubmitted products`,
-          )
-
-          // Set submittedAt timestamp before submitting to API
-          const currentTime = new Date()
-          const productsWithSubmittedAt = productsToSubmit.map((product) => ({
-            ...product,
-            submittedAt: currentTime,
-          }))
-
-          // Update products with submittedAt timestamp
-          await ContentMessenger.updateProductStatuses(productsWithSubmittedAt)
-
-          const startTime = performance.now()
-          this.isSyncing = true
-
-          try {
-            await this.apiClient.submitProducts(productsToSubmit)
-            const syncDuration = Math.round(performance.now() - startTime)
-            Logger.info(
-              'Background',
-              `Specific products sync completed: ${productsToSubmit.length} products submitted in ${syncDuration}ms`,
-            )
-          } catch (error) {
-            ErrorHandler.logError('Background', error, {
-              context: 'Specific products submit sync',
-              metadata: { productCount: productsToSubmit.length, hashes },
-            })
-          } finally {
-            this.isSyncing = false
-          }
-        }, 'SyncOrchestrator.performSpecificProductsSync')
-      },
-      { threshold: 500, debugOnly: false },
+    // Filter to only unsubmitted products (no submittedAt AND status is UNKNOWN/PENDING)
+    const productsToSubmit = allProducts.filter(
+      (product) =>
+        (product.submittedAt === null || product.submittedAt === undefined) &&
+        (product.status === 'UNKNOWN' || product.status === 'PENDING'),
     )
+
+    if (!productsToSubmit.length) {
+      Logger.info(
+        'Background',
+        `No unsubmitted products found for specific sync with hashes: ${hashes.join(', ')}`,
+      )
+      return
+    }
+
+    Logger.info(
+      'Background',
+      `Starting specific products sync for ${productsToSubmit.length} unsubmitted products`,
+    )
+
+    // Set submittedAt timestamp before submitting to API
+    const currentTime = new Date()
+    const productsWithSubmittedAt = productsToSubmit.map((product) => ({
+      ...product,
+      submittedAt: currentTime,
+    }))
+
+    // Update products with submittedAt timestamp
+    await ContentMessenger.updateProductStatuses(productsWithSubmittedAt)
+
+    const startTime = performance.now()
+    this.isSyncing = true
+
+    try {
+      await this.apiClient.submitProducts(productsToSubmit)
+      const syncDuration = Math.round(performance.now() - startTime)
+      Logger.info(
+        'Background',
+        `Specific products sync completed: ${productsToSubmit.length} products submitted in ${syncDuration}ms`,
+      )
+    } catch (error) {
+      ErrorHandler.logError('Background', error, {
+        context: 'Specific products submit sync',
+        metadata: { productCount: productsToSubmit.length, hashes },
+      })
+    } finally {
+      this.isSyncing = false
+    }
   }
 
   private async performSubmitSync(syncType: SyncType): Promise<void> {
-    await PerformanceMonitor.measureAsync(
-      'performSubmitSync',
-      async () => {
-        await ErrorBoundary.protect(async () => {
-          if (this.isSyncing) {
-            Logger.info(
-              'Background',
-              'Submit sync already in progress, skipping',
-            )
-            return
-          }
+    if (this.isSyncing) {
+      Logger.info('Background', 'Submit sync already in progress, skipping')
+      return
+    }
 
-          if (!this.apiClient.isConfigured()) {
-            Logger.info(
-              'Background',
-              'API client not configured, skipping submit sync',
-            )
-            return
-          }
+    if (!this.apiClient.isConfigured()) {
+      Logger.info(
+        'Background',
+        'API client not configured, skipping submit sync',
+      )
+      return
+    }
 
-          this.isSyncing = true
-          const syncStartTime = Date.now()
+    this.isSyncing = true
+    const syncStartTime = Date.now()
 
-          const tab = await ContentMessenger.findActiveGlovoTab()
-          if (!tab?.id) {
-            if (syncType === 'manual') {
-              Logger.info(
-                'Background',
-                `No active Glovo tab found for ${syncType} sync`,
-              )
-            }
-            return
-          }
+    const tab = await ContentMessenger.findActiveGlovoTab()
+    if (!tab?.id) {
+      if (syncType === 'manual') {
+        Logger.info(
+          'Background',
+          `No active Glovo tab found for ${syncType} sync`,
+        )
+      }
+      return
+    }
 
-          // Get unsubmitted products
-          const productsToSubmit =
-            await ContentMessenger.getUnsubmittedProducts()
+    // Get unsubmitted products
+    const productsToSubmit = await ContentMessenger.getUnsubmittedProducts()
 
-          if (!productsToSubmit.length) {
-            Logger.info(
-              'Background',
-              `No products to submit for ${syncType} sync`,
-            )
-            return
-          }
+    if (!productsToSubmit.length) {
+      Logger.info('Background', `No products to submit for ${syncType} sync`)
+      return
+    }
 
-          Logger.info(
-            'Background',
-            `Starting ${syncType} submit sync for ${productsToSubmit.length} products`,
-          )
-
-          // Set submittedAt timestamp before submitting to API
-          const currentTime = new Date()
-          const productsWithSubmittedAt = productsToSubmit.map((product) => ({
-            ...product,
-            submittedAt: currentTime,
-          }))
-
-          // Update products with submittedAt timestamp
-          await ContentMessenger.updateProductStatuses(productsWithSubmittedAt)
-
-          // Submit products to API
-          const submitResult =
-            await this.apiClient.submitProducts(productsToSubmit)
-
-          if (submitResult.success) {
-            // Mark submitted products as pending
-            const updatedProducts = productsToSubmit.map((product) => ({
-              ...product,
-              status: 'PENDING' as const,
-            }))
-
-            await ContentMessenger.updateProductStatuses(updatedProducts)
-
-            const syncDuration = Date.now() - syncStartTime
-            this.lastSyncTime = Date.now()
-
-            Logger.info(
-              'Background',
-              `${syncType} submit sync completed: ${submitResult.submitted_count} products submitted in ${syncDuration}ms`,
-            )
-
-            // Immediately poll for any quick classifications
-            Logger.info(
-              'Background',
-              'Performing immediate status poll after submission...',
-            )
-          } else {
-            throw new Error(`Submit sync failed: ${submitResult.message}`)
-          }
-        }, `SyncOrchestrator.performSubmitSync.${syncType}`)
-      },
-      {
-        threshold: 2000,
-        metadata: { syncType },
-      },
+    Logger.info(
+      'Background',
+      `Starting ${syncType} submit sync for ${productsToSubmit.length} products`,
     )
+
+    // Set submittedAt timestamp before submitting to API
+    const currentTime = new Date()
+    const productsWithSubmittedAt = productsToSubmit.map((product) => ({
+      ...product,
+      submittedAt: currentTime,
+    }))
+
+    // Update products with submittedAt timestamp
+    await ContentMessenger.updateProductStatuses(productsWithSubmittedAt)
+
+    // Submit products to API
+    const submitResult = await this.apiClient.submitProducts(productsToSubmit)
+
+    if (submitResult.success) {
+      // Mark submitted products as pending
+      const updatedProducts = productsToSubmit.map((product) => ({
+        ...product,
+        status: 'PENDING' as const,
+      }))
+
+      await ContentMessenger.updateProductStatuses(updatedProducts)
+
+      const syncDuration = Date.now() - syncStartTime
+      this.lastSyncTime = Date.now()
+
+      Logger.info(
+        'Background',
+        `${syncType} submit sync completed: ${submitResult.submitted_count} products submitted in ${syncDuration}ms`,
+      )
+
+      // Immediately poll for any quick classifications
+      Logger.info(
+        'Background',
+        'Performing immediate status poll after submission...',
+      )
+    } else {
+      throw new Error(`Submit sync failed: ${submitResult.message}`)
+    }
     this.isSyncing = false
   }
 

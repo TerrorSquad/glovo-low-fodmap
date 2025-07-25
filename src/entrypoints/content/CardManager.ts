@@ -4,7 +4,6 @@ import { Config } from '@/utils/Config'
 import { Product } from '@/utils/db'
 import { ErrorHandler } from '@/utils/ErrorHandler'
 import { Logger } from '@/utils/Logger'
-import { PerformanceMonitor } from '@/utils/PerformanceMonitor'
 import type { InjectedProductData } from '@/utils/types'
 
 /**
@@ -40,34 +39,29 @@ export class CardManager {
    * Used when: New products are injected via content script or API responses
    */
   static tagVisibleCards(products: InjectedProductData[]): void {
-    PerformanceMonitor.measure('tagVisibleCards', () => {
-      try {
-        const untaggedCards = document.querySelectorAll<HTMLElement>(
-          `${CardManager.CARD_SELECTOR}:not([data-hash])`,
-        )
-        const productMap = new Map(products.map((p) => [p.name.trim(), p.hash]))
+    try {
+      const untaggedCards = document.querySelectorAll<HTMLElement>(
+        `${CardManager.CARD_SELECTOR}:not([data-hash])`,
+      )
+      const productMap = new Map(products.map((p) => [p.name.trim(), p.hash]))
 
-        untaggedCards.forEach((card) => {
-          const cardName = card
-            .querySelector(CardManager.CARD_NAME_SELECTOR)
-            ?.textContent?.trim()
+      untaggedCards.forEach((card) => {
+        const cardName = card
+          .querySelector(CardManager.CARD_NAME_SELECTOR)
+          ?.textContent?.trim()
 
-          if (!cardName) return
+        if (!cardName) return
 
-          const hash = productMap.get(cardName)
-          if (hash) {
-            card.dataset.hash = hash.toString()
-          }
-        })
+        const hash = productMap.get(cardName)
+        if (hash) {
+          card.dataset.hash = hash.toString()
+        }
+      })
 
-        Logger.info(
-          'Content',
-          `Tagged ${untaggedCards.length} cards with hashes`,
-        )
-      } catch (error) {
-        ErrorHandler.logError('Content', error, { context: 'Card tagging' })
-      }
-    })
+      Logger.info('Content', `Tagged ${untaggedCards.length} cards with hashes`)
+    } catch (error) {
+      ErrorHandler.logError('Content', error, { context: 'Card tagging' })
+    }
   }
 
   /**
@@ -80,38 +74,36 @@ export class CardManager {
    * Used when: DOM scanning discovers products that already exist in database
    */
   static tagVisibleCardsByName(products: Product[]): void {
-    PerformanceMonitor.measure('tagVisibleCardsByName', () => {
-      try {
-        const untaggedCards = document.querySelectorAll<HTMLElement>(
-          `${CardManager.CARD_SELECTOR}:not([data-hash])`,
-        )
-        const productMap = new Map(
-          products.map((p) => [p.name.trim().toLowerCase(), p.hash]),
-        )
+    try {
+      const untaggedCards = document.querySelectorAll<HTMLElement>(
+        `${CardManager.CARD_SELECTOR}:not([data-hash])`,
+      )
+      const productMap = new Map(
+        products.map((p) => [p.name.trim().toLowerCase(), p.hash]),
+      )
 
-        untaggedCards.forEach((card) => {
-          const cardName = card
-            .querySelector(CardManager.CARD_NAME_SELECTOR)
-            ?.textContent?.trim()
+      untaggedCards.forEach((card) => {
+        const cardName = card
+          .querySelector(CardManager.CARD_NAME_SELECTOR)
+          ?.textContent?.trim()
 
-          if (!cardName) return
+        if (!cardName) return
 
-          const hash = productMap.get(cardName.toLowerCase())
-          if (hash) {
-            card.dataset.hash = hash.toString()
-          }
-        })
+        const hash = productMap.get(cardName.toLowerCase())
+        if (hash) {
+          card.dataset.hash = hash.toString()
+        }
+      })
 
-        Logger.info(
-          'Content',
-          `Tagged ${untaggedCards.length} cards with hashes from database`,
-        )
-      } catch (error) {
-        ErrorHandler.logError('Content', error, {
-          context: 'Card tagging by name',
-        })
-      }
-    })
+      Logger.info(
+        'Content',
+        `Tagged ${untaggedCards.length} cards with hashes from database`,
+      )
+    } catch (error) {
+      ErrorHandler.logError('Content', error, {
+        context: 'Card tagging by name',
+      })
+    }
   }
 
   /**
@@ -159,78 +151,67 @@ export class CardManager {
     hideNonLowFodmap: boolean,
     hideNonFoodItems: boolean = false,
   ): Promise<void> {
-    return await PerformanceMonitor.measureAsync(
-      'updateAllCards',
-      async () => {
-        try {
-          const allCards = CardManager.getTaggedCards()
-          if (allCards.length === 0) return
+    try {
+      const allCards = CardManager.getTaggedCards()
+      if (allCards.length === 0) return
 
-          const hashes = allCards.map((card) => card.dataset.hash!)
-          const dbMap = await ProductManager.getProductsByHashes(hashes)
-          let changedCards = 0
+      const hashes = allCards.map((card) => card.dataset.hash!)
+      const dbMap = await ProductManager.getProductsByHashes(hashes)
+      let changedCards = 0
 
-          allCards.forEach((card) => {
-            const hash = card.dataset.hash
-            if (!hash) return
+      allCards.forEach((card) => {
+        const hash = card.dataset.hash
+        if (!hash) return
 
-            const product = dbMap.get(hash)
-            if (product) {
-              const currentStatus = card.dataset.fodmapStatus
+        const product = dbMap.get(hash)
+        if (product) {
+          const currentStatus = card.dataset.fodmapStatus
 
-              // Determine visibility based on both FODMAP status and food type
-              // Hide non-low FODMAP products only if they are food items
-              const shouldHideForFodmap =
-                product.status !== 'LOW' &&
-                hideNonLowFodmap &&
-                product.isFood !== false
-              const shouldHideForNonFood =
-                product.isFood === false && hideNonFoodItems
-              const shouldBeHidden = shouldHideForFodmap || shouldHideForNonFood
+          // Determine visibility based on both FODMAP status and food type
+          // Hide non-low FODMAP products only if they are food items
+          const shouldHideForFodmap =
+            product.status !== 'LOW' &&
+            hideNonLowFodmap &&
+            product.isFood !== false
+          const shouldHideForNonFood =
+            product.isFood === false && hideNonFoodItems
+          const shouldBeHidden = shouldHideForFodmap || shouldHideForNonFood
 
-              const isCurrentlyHidden =
-                card.classList.contains('fodmap-card-hidden')
+          const isCurrentlyHidden =
+            card.classList.contains('fodmap-card-hidden')
 
-              // Only apply styling if there's an actual change needed
-              if (
-                currentStatus !== product.status ||
-                isCurrentlyHidden !== shouldBeHidden
-              ) {
-                StyleManager.applyToCard(card, product, shouldBeHidden)
-                changedCards++
-              }
-            }
-          })
-
-          // Only log info message when there were changes
-          if (changedCards > 0) {
-            const filterDescription = []
-            if (hideNonLowFodmap)
-              filterDescription.push('hiding non-LOW FODMAP food items')
-            if (hideNonFoodItems)
-              filterDescription.push('hiding non-food items')
-            const filterText =
-              filterDescription.length > 0
-                ? `(${filterDescription.join(', ')})`
-                : '(showing all)'
-
-            Logger.info(
-              'Content',
-              `Updated styles for ${changedCards}/${allCards.length} cards ${filterText}`,
-            )
+          // Only apply styling if there's an actual change needed
+          if (
+            currentStatus !== product.status ||
+            isCurrentlyHidden !== shouldBeHidden
+          ) {
+            StyleManager.applyToCard(card, product, shouldBeHidden)
+            changedCards++
           }
-        } catch (error) {
-          ErrorHandler.logError('Content', error, {
-            context: 'Updating all cards',
-            metadata: { hideNonLowFodmap, hideNonFoodItems },
-          })
         }
-      },
-      {
-        threshold: 10, // Only log if update takes more than 10ms
-        debugOnly: false, // Log updateAllCards even in non-debug mode but only when slow
-        metadata: { hideNonLowFodmap },
-      },
-    )
+      })
+
+      // Only log info message when there were changes
+      if (changedCards > 0) {
+        const filterDescription = []
+        if (hideNonLowFodmap)
+          filterDescription.push('hiding non-LOW FODMAP food items')
+        if (hideNonFoodItems) filterDescription.push('hiding non-food items')
+        const filterText =
+          filterDescription.length > 0
+            ? `(${filterDescription.join(', ')})`
+            : '(showing all)'
+
+        Logger.info(
+          'Content',
+          `Updated styles for ${changedCards}/${allCards.length} cards ${filterText}`,
+        )
+      }
+    } catch (error) {
+      ErrorHandler.logError('Content', error, {
+        context: 'Updating all cards',
+        metadata: { hideNonLowFodmap, hideNonFoodItems },
+      })
+    }
   }
 }

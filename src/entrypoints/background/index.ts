@@ -1,6 +1,7 @@
 import { BackgroundMessageHandler } from '@/entrypoints/background/BackgroundMessageHandler'
 import { SyncOrchestrator } from '@/entrypoints/background/SyncOrchestrator'
 import { ExtensionMonitor } from '@/utils/ExtensionMonitor'
+
 export default defineBackground(() => {
   console.log('Background script initialized')
   const syncOrchestrator = SyncOrchestrator.getInstance()

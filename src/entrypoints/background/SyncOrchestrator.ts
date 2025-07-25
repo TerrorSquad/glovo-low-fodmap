@@ -104,6 +104,11 @@ export class SyncOrchestrator {
 
     const tab = await ContentMessenger.findActiveGlovoTab()
     if (!tab?.id) {
+      Logger.info(
+        'Background',
+        'No active Glovo tab found for resetting submittedAt',
+      )
+      this.isPolling = false
       return
     }
 
@@ -127,6 +132,7 @@ export class SyncOrchestrator {
         'Background',
         'No active Glovo tab found for specific products sync',
       )
+      this.isSyncing = false
       return
     }
 
@@ -145,6 +151,7 @@ export class SyncOrchestrator {
         'Background',
         `No unsubmitted products found for specific sync with hashes: ${hashes.join(', ')}`,
       )
+      this.isSyncing = false
       return
     }
 
@@ -208,6 +215,7 @@ export class SyncOrchestrator {
           `No active Glovo tab found for ${syncType} sync`,
         )
       }
+      this.isSyncing = false
       return
     }
 
@@ -216,6 +224,7 @@ export class SyncOrchestrator {
 
     if (!productsToSubmit.length) {
       Logger.info('Background', `No products to submit for ${syncType} sync`)
+      this.isSyncing = false
       return
     }
 
@@ -279,6 +288,8 @@ export class SyncOrchestrator {
 
     const tab = await ContentMessenger.findActiveGlovoTab()
     if (!tab?.id) {
+      Logger.info('Background', 'No active Glovo tab found for status poll')
+      this.isPolling = false
       return
     }
 
@@ -288,6 +299,8 @@ export class SyncOrchestrator {
     const hashes = submittedUnprocessedProducts.map((p) => p.hash)
 
     if (!hashes.length) {
+      Logger.info('Background', 'No submitted products found for status poll')
+      this.isPolling = false
       return
     }
 

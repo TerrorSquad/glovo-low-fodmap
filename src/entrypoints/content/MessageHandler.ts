@@ -34,7 +34,7 @@ export interface IFodmapHelper {
  * - Handling logging and diagnostic message forwarding
  *
  * Message types handled:
- * - Product data queries (unsubmitted, submitted unprocessed, by IDs)
+ * - Product data queries (unsubmitted, submitted unprocessed, by hashes)
  * - Settings updates (hide/show preferences)
  * - Logging and diagnostic requests
  * - Statistics and metrics collection

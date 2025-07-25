@@ -182,7 +182,7 @@ const settings = await chrome.storage.sync.get(['hideNonLowFodmap'])
 ### 1. **FODMAP Classification**
 - **AI Integration**: External API using submit-and-poll pattern
 - **Endpoints**: `/products/submit` for submission, `/products/status` for polling
-- **Response Format**: Status endpoint returns `{results: [], found: number, missing: number, missing_ids: []}`
+- **Response Format**: Status endpoint returns `{results: [], found: number, missing: number, missing_hashes: []}`
 - **Workflow**: Submit unknown products → mark as pending → poll for completed classifications
 - **Fallback**: Local JSON files for common products
 - **Caching**: IndexedDB storage prevents re-classification

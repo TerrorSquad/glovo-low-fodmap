@@ -12,7 +12,7 @@ export type BackgroundMessageAction =
 export interface BackgroundMessage {
   action: BackgroundMessageAction
   data?: {
-    newProductIds?: string[]
+    newProductHashes?: string[]
   }
 }
 
@@ -81,20 +81,20 @@ export class BackgroundMessageHandler {
   }
 
   private handleNewProducts(message: BackgroundMessage): void {
-    const newProductIds = message.data?.newProductIds
-    if (!newProductIds || newProductIds.length === 0) {
+    const newProductHashes = message.data?.newProductHashes
+    if (!newProductHashes || newProductHashes.length === 0) {
       Logger.warn(
         'Background',
-        'Received newProductsFound message without product IDs',
+        'Received newProductsFound message without product hashes',
       )
       return
     }
 
     Logger.info(
       'Background',
-      `Received ${newProductIds.length} new products, syncing specific products`,
+      `Received ${newProductHashes.length} new products, syncing specific products`,
     )
-    this.syncOrchestrator.syncSpecificProducts(newProductIds)
+    this.syncOrchestrator.syncSpecificProducts(newProductHashes)
   }
 
   private handlePollStatus(): void {

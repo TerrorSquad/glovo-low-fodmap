@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.3.1](https://github.com/TerrorSquad/glovo-low-fodmap/compare/v0.3.0...v0.3.1) (2025-07-25)
+
+
+### Bug Fixes
+
+* add browser-specific settings for Gecko in the manifest ([c78f8e6](https://github.com/TerrorSquad/glovo-low-fodmap/commit/c78f8e61b7bc1b0a0c32fb136f90dcc0edf4e4f2))
+* ensure proper type conversion for font size and storage retrieval ([47190f8](https://github.com/TerrorSquad/glovo-low-fodmap/commit/47190f87dd8219f283be70d8a243725f4861aaf8))
+* update TypeScript formatter to use biomejs.biome ([72c8579](https://github.com/TerrorSquad/glovo-low-fodmap/commit/72c85790cbc79eca37ebfa976b01229237ba0114))
+* use 'this' for accessing CSS_CLASSES in BadgeConfig ([3004704](https://github.com/TerrorSquad/glovo-low-fodmap/commit/30047044d7dd0803802bbf994daf9229fbb9cb4a))
+
 ## [0.3.0](https://github.com/TerrorSquad/glovo-low-fodmap/compare/v0.2.0...v0.3.0) (2025-07-23)
 
 

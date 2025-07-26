@@ -113,6 +113,8 @@ export class SyncOrchestrator {
     }
 
     await ContentMessenger.resetSubmittedAtForMissingProducts(hashes)
+    Logger.info('Background', `Reset submittedAt for ${hashes.length} products`)
+    this.isPolling = false
   }
 
   private async performSpecificProductsSync(hashes: string[]): Promise<void> {

@@ -1,16 +1,8 @@
 import tailwindcss from "tailwindcss";
-import { defineConfig } from "wxt";
+import { defineConfig, UserManifest } from "wxt";
 import pkg from "./package.json";
 
-// See https://wxt.dev/api/config.html
-export default defineConfig({
-  modules: ["@wxt-dev/module-vue"],
-  manifestVersion: 3,
-  srcDir: "src",
-  alias: {
-    "@": "/src",
-  },
-  manifest: {
+const manifest: UserManifest = {
     browser_specific_settings: {
       gecko: {
         id: "glovolowfodmaphelper@goranninkovic.com",
@@ -24,7 +16,6 @@ export default defineConfig({
     host_permissions: [
       "https://glovoapp.com/*",
       "https://glovo-fodmap-api.fly.dev/*",
-      process.env.NODE_ENV === "development" ? "*://*/*" : "",
     ],
 
     commands: {
@@ -36,7 +27,21 @@ export default defineConfig({
         description: "Sakrij/Prikaži Non-Low-FODMAP proizvode",
       },
     },
+}
+
+if (process.env.NODE_ENV === "development") {
+  manifest.host_permissions?.push("*://*/*");
+}
+
+// See https://wxt.dev/api/config.html
+export default defineConfig({
+  modules: ["@wxt-dev/module-vue"],
+  manifestVersion: 3,
+  srcDir: "src",
+  alias: {
+    "@": "/src",
   },
+  manifest,
   outDir: "dist",
   vite() {
     return {

@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.4.0](https://github.com/TerrorSquad/glovo-low-fodmap/compare/v0.3.1...v0.4.0) (2025-07-26)
+
+
+### Features
+
+* add request timeout configuration for API submissions and status polling ([61e59fe](https://github.com/TerrorSquad/glovo-low-fodmap/commit/61e59fef9fe7725ff243739496a5785955223d5b))
+
+
+### Bug Fixes
+
+* change bulkAdd to bulkPut for adding new products to the database ([e3024a2](https://github.com/TerrorSquad/glovo-low-fodmap/commit/e3024a2464fcaded79eaba2d8faa518213147e70))
+* improve error handling and logging in specific products sync process ([b42ac16](https://github.com/TerrorSquad/glovo-low-fodmap/commit/b42ac168f9d01c8f6a673da1e3c5392cdfef033c))
+* set isPolling to false after resetSubmittedAtForMissingProducts ([4d05e6c](https://github.com/TerrorSquad/glovo-low-fodmap/commit/4d05e6c41a11e50cecc3ef8444c9204ab4ca58bf))
+* update product identifiers from IDs to hashes in background sync and message handling ([33c80a5](https://github.com/TerrorSquad/glovo-low-fodmap/commit/33c80a5b55b0e602b54718809b8da3f39e1ff72b))
+
 ## [0.3.1](https://github.com/TerrorSquad/glovo-low-fodmap/compare/v0.3.0...v0.3.1) (2025-07-25)
 
 

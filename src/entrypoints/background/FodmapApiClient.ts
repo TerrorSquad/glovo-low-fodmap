@@ -131,6 +131,7 @@ export class FodmapApiClient {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         const response = await fetch(`${this.apiEndpoint}/products/submit`, {
+          signal: AbortSignal.timeout(Config.SYNC_REQUEST_TIMEOUT),
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -171,6 +172,7 @@ export class FodmapApiClient {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         const response = await fetch(`${this.apiEndpoint}/products/status`, {
+          signal: AbortSignal.timeout(Config.SYNC_REQUEST_TIMEOUT),
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

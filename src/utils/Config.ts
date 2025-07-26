@@ -4,6 +4,10 @@
 export class Config {
   // API Configuration
   static readonly API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || ''
+  static readonly SYNC_REQUEST_TIMEOUT =
+    Number(import.meta.env.VITE_SYNC_REQUEST_TIMEOUT) || 10000 // 10 seconds
+  static readonly POLL_REQUEST_TIMEOUT =
+    Number(import.meta.env.VITE_POLL_REQUEST_TIMEOUT) || 10000 // 10 seconds
 
   // Debug and Logging
   static readonly DEBUG_MODE = process.env.NODE_ENV === 'development'

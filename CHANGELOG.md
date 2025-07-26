@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.4.1](https://github.com/TerrorSquad/glovo-low-fodmap/compare/v0.4.0...v0.4.1) (2025-07-26)
+
+
+### Bug Fixes
+
+* remove redundant logging for no products found in performInitialDomScan ([3b333fb](https://github.com/TerrorSquad/glovo-low-fodmap/commit/3b333fb85e65d8158e0228effe4f73b3a97da077))
+* streamline DOM debugging by removing redundant checks and improving selector specificity ([7f50a35](https://github.com/TerrorSquad/glovo-low-fodmap/commit/7f50a35604d43062d576c7b2874a484ec7b9aed4))
+
 ## [0.4.0](https://github.com/TerrorSquad/glovo-low-fodmap/compare/v0.3.1...v0.4.0) (2025-07-26)
 
 

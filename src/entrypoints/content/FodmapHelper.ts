@@ -300,18 +300,6 @@ export class FodmapHelper implements IFodmapHelper {
         )
       }
     }
-
-    if (totalFound === 0) {
-      Logger.warn(
-        'FodmapHelper',
-        '⚠️ FODMAP Helper: No products found after all retry attempts. Page may not have loaded or selectors may be incorrect.',
-      )
-      Logger.debug('FodmapHelper', '🔍 Debug: Current page HTML structure:')
-      Logger.debug(
-        'FodmapHelper',
-        `${document.body.innerHTML.substring(0, 2000)}...`,
-      )
-    }
   }
 
   /**

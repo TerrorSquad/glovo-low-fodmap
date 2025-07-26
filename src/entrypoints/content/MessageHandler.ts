@@ -281,26 +281,20 @@ export class MessageHandler {
     data: Product[],
     sendResponse: (response?: any) => void,
   ): Promise<void> {
-    // Trigger UI update after DB product status/classification changes
-    return await PerformanceMonitor.measureAsync(
-      'handleUpdateStatuses',
-      async () => {
-        try {
-          await ProductManager.updateStatuses(data)
-          await this.fodmapHelper.updatePageStyles() // UI update trigger
-          sendResponse({ success: true })
-          Logger.info(
-            'Content',
-            `Updated ${data.length} product statuses and refreshed styles`,
-          )
-        } catch (error) {
-          ErrorHandler.logError('Content', error, {
-            context: 'Updating product statuses',
-          })
-          sendResponse({ success: false, error: (error as Error).message })
-        }
-      },
-    )
+    try {
+      await ProductManager.updateStatuses(data)
+      await this.fodmapHelper.updatePageStyles() // UI update trigger
+      sendResponse({ success: true })
+      Logger.info(
+        'Content',
+        `Updated ${data.length} product statuses and refreshed styles`,
+      )
+    } catch (error) {
+      ErrorHandler.logError('Content', error, {
+        context: 'Updating product statuses',
+      })
+      sendResponse({ success: false, error: (error as Error).message })
+    }
   }
 
   /**

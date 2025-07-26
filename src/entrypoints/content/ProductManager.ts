@@ -62,7 +62,7 @@ export class ProductManager {
         )
 
         if (newProductsToDb.length > 0) {
-          await db.products.bulkAdd(newProductsToDb)
+          await db.products.bulkPut(newProductsToDb)
           Logger.info(
             'Content',
             `Added ${newProductsToDb.length} new products to database`,

@@ -183,68 +183,6 @@ export class DomProductScanner {
         `Found ${productElements.length} potential product elements`,
       )
 
-      // Debug: If no elements found, let's see what's actually on the page
-      if (productElements.length === 0) {
-        Logger.debug(
-          'DomProductScanner',
-          '🔍 DOM Debug: No product elements found. Checking page structure...',
-        )
-
-        // Check for common container elements
-        const containers = [
-          'main',
-          '[role="main"]',
-          '.main',
-          '#main',
-          '.container',
-          '.content',
-          '.page',
-          '[class*="product"]',
-          '[class*="Product"]',
-          '[class*="card"]',
-          '[class*="Card"]',
-          '[class*="item"]',
-          '[class*="Item"]',
-          '[data-qa]',
-          '[data-test]',
-        ]
-
-        for (const selector of containers) {
-          const elements = document.querySelectorAll(selector)
-          if (elements.length > 0) {
-            Logger.debug(
-              'DomProductScanner',
-              `🔍 DOM Debug: Found ${elements.length} elements for "${selector}"`,
-            )
-            if (elements.length <= 5) {
-              elements.forEach((el, i) => {
-                Logger.debug(
-                  'DomProductScanner',
-                  `  Element ${i}: ${el.tagName} ${el.className} ${el.id}`,
-                )
-              })
-            }
-          }
-        }
-
-        // Log a sample of all elements with classes
-        const allElementsWithClasses = document.querySelectorAll('[class]')
-        Logger.debug(
-          'DomProductScanner',
-          `🔍 DOM Debug: Total elements with classes: ${allElementsWithClasses.length}`,
-        )
-
-        // Show first 10 elements with classes
-        Array.from(allElementsWithClasses)
-          .slice(0, 10)
-          .forEach((el, i) => {
-            Logger.debug(
-              'DomProductScanner',
-              `  Sample ${i}: ${el.tagName} ${el.className.split(' ').slice(0, 3).join(' ')}`,
-            )
-          })
-      }
-
       // Extract data from each product element
       for (let i = 0; i < productElements.length; i++) {
         try {
@@ -403,7 +341,9 @@ export class DomProductScanner {
 
     for (const selector of DomProductScanner.PRODUCT_SELECTORS) {
       try {
-        const found = document.querySelectorAll(selector)
+        const found = document.querySelectorAll(
+          `div.store__page__body ${selector}`,
+        )
         Logger.debug(
           'DomProductScanner',
           `🔍 DOM Debug: Selector "${selector}" found ${found.length} elements`,
@@ -427,106 +367,106 @@ export class DomProductScanner {
     }
 
     // If no elements found with our selectors, try more generic approaches
-    if (elements.length === 0) {
-      Logger.debug(
-        'DomProductScanner',
-        '🔍 DOM Debug: No elements found with specific selectors, trying broader search...',
-      )
+    // if (elements.length === 0) {
+    //   Logger.debug(
+    //     'DomProductScanner',
+    //     '🔍 DOM Debug: No elements found with specific selectors, trying broader search...',
+    //   )
 
-      // Try to find elements that might be product cards based on structure
-      const broadSelectors = [
-        // Glovo-specific broad selectors
-        'section[type="PRODUCT_TILE"]',
-        '[data-test-id*="product"]',
-        '[data-test-id*="tile"]',
-        '.tile',
+    //   // Try to find elements that might be product cards based on structure
+    //   const broadSelectors = [
+    //     // Glovo-specific broad selectors
+    //     'section[type="PRODUCT_TILE"]',
+    //     '[data-test-id*="product"]',
+    //     '[data-test-id*="tile"]',
+    //     '.tile',
 
-        // More specific selectors for product-like elements
-        'article', // Common for product cards
-        'li[class*="item"]', // List items with "item" in class
-        'div[class*="product"]:not([id*="__"]):not([class*="wrapper"]):not([class*="container"])', // Product divs, excluding large containers
-        'div[class*="card"]:not([id*="__"]):not([class*="wrapper"]):not([class*="container"])', // Card divs, excluding large containers
-        'div[class*="item"]:not([id*="__"]):not([class*="wrapper"]):not([class*="container"])', // Item divs, excluding large containers
-        '[class*="menu-item"]', // Menu items
-        '[class*="store-item"]', // Store items
+    //     // More specific selectors for product-like elements
+    //     'article', // Common for product cards
+    //     'li[class*="item"]', // List items with "item" in class
+    //     'div[class*="product"]:not([id*="__"]):not([class*="wrapper"]):not([class*="container"])', // Product divs, excluding large containers
+    //     'div[class*="card"]:not([id*="__"]):not([class*="wrapper"]):not([class*="container"])', // Card divs, excluding large containers
+    //     'div[class*="item"]:not([id*="__"]):not([class*="wrapper"]):not([class*="container"])', // Item divs, excluding large containers
+    //     '[class*="menu-item"]', // Menu items
+    //     '[class*="store-item"]', // Store items
 
-        // Fallback selectors
-        'div[class]:has(img):has([class*="price"])', // Divs with images and price indicators
-        'div[class]:has(img):has(a[href])', // Divs with images and links
-      ]
+    //     // Fallback selectors
+    //     'div[class]:has(img):has([class*="price"])', // Divs with images and price indicators
+    //     'div[class]:has(img):has(a[href])', // Divs with images and links
+    //   ]
 
-      for (const selector of broadSelectors) {
-        try {
-          const found = document.querySelectorAll(selector)
-          Logger.debug(
-            'DomProductScanner',
-            `🔍 DOM Debug: Broad selector "${selector}" found ${found.length} elements`,
-          )
+    //   for (const selector of broadSelectors) {
+    //     try {
+    //       const found = document.querySelectorAll(selector)
+    //       Logger.debug(
+    //         'DomProductScanner',
+    //         `🔍 DOM Debug: Broad selector "${selector}" found ${found.length} elements`,
+    //       )
 
-          if (found.length > 0 && found.length < 100) {
-            // Reasonable number
-            for (const element of found) {
-              if (!seen.has(element)) {
-                // Skip large container elements that shouldn't be product cards
-                const isLargeContainer =
-                  element.id &&
-                  (element.id.includes('__') ||
-                    element.id.includes('layout') ||
-                    element.id.includes('wrapper') ||
-                    element.id.includes('app'))
+    //       if (found.length > 0 && found.length < 100) {
+    //         // Reasonable number
+    //         for (const element of found) {
+    //           if (!seen.has(element)) {
+    //             // Skip large container elements that shouldn't be product cards
+    //             const isLargeContainer =
+    //               element.id &&
+    //               (element.id.includes('__') ||
+    //                 element.id.includes('layout') ||
+    //                 element.id.includes('wrapper') ||
+    //                 element.id.includes('app'))
 
-                const hasWrapperClass =
-                  element.className &&
-                  (element.className.includes('wrapper') ||
-                    element.className.includes('container') ||
-                    element.className.includes('layout') ||
-                    element.className.includes('app-'))
+    //             const hasWrapperClass =
+    //               element.className &&
+    //               (element.className.includes('wrapper') ||
+    //                 element.className.includes('container') ||
+    //                 element.className.includes('layout') ||
+    //                 element.className.includes('app-'))
 
-                if (isLargeContainer || hasWrapperClass) {
-                  continue // Skip large containers
-                }
+    //             if (isLargeContainer || hasWrapperClass) {
+    //               continue // Skip large containers
+    //             }
 
-                // Check if this element might contain product information
-                const hasText =
-                  element.textContent &&
-                  element.textContent.trim().length > 10 &&
-                  element.textContent.trim().length < 500
-                const hasLinks = element.querySelector('a[href]')
-                const hasImages = element.querySelector('img')
-                const hasPriceIndicators =
-                  element.textContent &&
-                  /€|EUR|\$|USD|\d+[.,]\d+/.test(element.textContent)
+    //             // Check if this element might contain product information
+    //             const hasText =
+    //               element.textContent &&
+    //               element.textContent.trim().length > 10 &&
+    //               element.textContent.trim().length < 500
+    //             const hasLinks = element.querySelector('a[href]')
+    //             const hasImages = element.querySelector('img')
+    //             const hasPriceIndicators =
+    //               element.textContent &&
+    //               /€|EUR|\$|USD|\d+[.,]\d+/.test(element.textContent)
 
-                // More specific criteria for product elements
-                const hasProductIndicators =
-                  element.textContent &&
-                  /produkt|item|artikel|cena|price/i.test(element.textContent)
-                const hasReasonableSize =
-                  element.children.length > 0 && element.children.length < 20
+    //             // More specific criteria for product elements
+    //             const hasProductIndicators =
+    //               element.textContent &&
+    //               /produkt|item|artikel|cena|price/i.test(element.textContent)
+    //             const hasReasonableSize =
+    //               element.children.length > 0 && element.children.length < 20
 
-                if (
-                  hasText &&
-                  hasReasonableSize &&
-                  (hasLinks ||
-                    hasImages ||
-                    hasPriceIndicators ||
-                    hasProductIndicators)
-                ) {
-                  elements.push(element)
-                  seen.add(element)
-                  Logger.debug(
-                    'DomProductScanner',
-                    `  ✅ Added broad element: ${element.tagName} ${element.className.split(' ').slice(0, 2).join(' ')}`,
-                  )
-                }
-              }
-            }
-          }
-        } catch (error) {
-          // Continue with next selector
-        }
-      }
-    }
+    //             if (
+    //               hasText &&
+    //               hasReasonableSize &&
+    //               (hasLinks ||
+    //                 hasImages ||
+    //                 hasPriceIndicators ||
+    //                 hasProductIndicators)
+    //             ) {
+    //               elements.push(element)
+    //               seen.add(element)
+    //               Logger.debug(
+    //                 'DomProductScanner',
+    //                 `  ✅ Added broad element: ${element.tagName} ${element.className.split(' ').slice(0, 2).join(' ')}`,
+    //               )
+    //             }
+    //           }
+    //         }
+    //       }
+    //     } catch (error) {
+    //       // Continue with next selector
+    //     }
+    //   }
+    // }
 
     Logger.info(
       'DomProductScanner',
@@ -674,24 +614,25 @@ export class DomProductScanner {
       if (addedProducts.length > 0) {
         Logger.info(
           'DomProductScanner',
-          `Detected $addedProducts.lengthnew products via mutation observer`,
+          `Detected ${addedProducts.length} new products via mutation observer`,
         )
         MetricsCollector.record('dom.mutation.products', addedProducts.length)
         callback(addedProducts)
       }
     })
 
-    // Start observing
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    })
+    const targetElement = document.querySelector('div.store__page__body')
+    if (targetElement) {
+      observer.observe(targetElement, {
+        childList: true,
+        subtree: true,
+      })
 
-    Logger.info(
-      'DomProductScanner',
-      'Mutation observer started for dynamic product detection',
-    )
-    MetricsCollector.record('dom.mutation.observer.started', 1)
+      Logger.info(
+        'DomProductScanner',
+        'Mutation observer started for dynamic product detection',
+      )
+    }
 
     return observer
   }

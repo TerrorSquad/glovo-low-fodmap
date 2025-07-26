@@ -33,6 +33,8 @@ export interface ProductScanResult {
  * multiple selector strategies and graceful degradation.
  */
 export class DomProductScanner {
+  private static readonly PRODUCT_STORE_CONTAINER_SELECTOR =
+    'div.store__page__body'
   private static readonly PRODUCT_SELECTORS = [
     // Glovo-specific selectors based on actual HTML structure
     'section[type="PRODUCT_TILE"]',
@@ -342,7 +344,7 @@ export class DomProductScanner {
     for (const selector of DomProductScanner.PRODUCT_SELECTORS) {
       try {
         const found = document.querySelectorAll(
-          `div.store__page__body ${selector}`,
+          `${DomProductScanner.PRODUCT_STORE_CONTAINER_SELECTOR} ${selector}`,
         )
         Logger.debug(
           'DomProductScanner',
@@ -621,7 +623,9 @@ export class DomProductScanner {
       }
     })
 
-    const targetElement = document.querySelector('div.store__page__body')
+    const targetElement = document.querySelector(
+      DomProductScanner.PRODUCT_STORE_CONTAINER_SELECTOR,
+    )
     if (targetElement) {
       observer.observe(targetElement, {
         childList: true,

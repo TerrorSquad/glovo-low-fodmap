@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.4.2](https://github.com/TerrorSquad/glovo-low-fodmap/compare/v0.4.1...v0.4.2) (2025-07-27)
+
+
+### Performance Improvements
+
+* streamline badge configuration and tooltip handling for improved performance ([914464d](https://github.com/TerrorSquad/glovo-low-fodmap/commit/914464d3a399c710fa7a7ad8ab110940cbdfd1ee))
+
 ## [0.4.1](https://github.com/TerrorSquad/glovo-low-fodmap/compare/v0.4.0...v0.4.1) (2025-07-26)
 
 

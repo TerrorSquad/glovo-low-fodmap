@@ -188,8 +188,6 @@ export class FodmapHelper implements IFodmapHelper {
     }
   }
 
-  // Removed periodic interval; mutation observer now handles all dynamic updates
-
   /**
    * Debug helper - generates and logs comprehensive diagnostic report
    * Includes database status, extension state, and performance metrics

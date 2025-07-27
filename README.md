@@ -1,199 +1,199 @@
 # Glovo FODMAP Helper
 
-Chrome ekstenzija za označavanje FODMAP statusa proizvoda na Glovo aplikaciji.
+A modern Chrome extension for displaying the FODMAP status of products on the Glovo application, built with WXT, Vue.js, and TypeScript.
 
-## Funkcionalnosti
+## Features
 
-- **Automatsko označavanje**: Prikazuje FODMAP status proizvoda (nizak/visok) direktno na Glovo sajtu
-- **Vizuelni indikatori**: Zeleni badge za proizvode sa niskim FODMAP-om, crveni za visoke
-- **Filtriranje**: Opcija sakrivanja proizvoda koji nisu low-FODMAP
-- **Sinhronizacija**: Automatska sinhronizacija sa eksternim API-jem za ažuriranje statusa
-- **Lokalna baza**: Čuva podatke o proizvodima u lokalnoj IndexedDB bazi
+- **Automatic Labeling**: Displays the FODMAP status (`LOW`, `HIGH`, `MODERATE`, `UNKNOWN`) directly on the Glovo website.
+- **Visual Indicators**: Clear badges with icons and colors for each status.
+- **Dynamic Tooltips**: Provides additional information about the status, including explanations from the API, on hover.
+- **Filtering**: Option to hide products that are not LOW FODMAP, as well as those that are not food items.
+- **API Synchronization**: Uses a "submit-and-poll" pattern to send new products to an external API and periodically fetch updated statuses,.
+- **Local Database**: Efficiently stores product data in a local IndexedDB using Dexie.js.
+- **Advanced Settings**: The popup interface allows for adjusting dark mode and tooltip font size.
+- **Diagnostics**: Built-in debugging tools available in the popup for the development environment.
 
-## Struktura projekta
+## Tech Stack
+- Framework: [WXT (Web Extension Toolkit)](https://wxt.dev/)
+- UI: [Vue.js](https://vuejs.org/)
+- Language: [TypeScript](https://www.typescriptlang.org/)
+- Styling: [TailwindCSS](https://tailwindcss.com/)
+- Local Database: [Dexie.js (Wrapper for IndexedDB)](https://dexie.org/)
+- Linting & Formatting: [Biome](https://biomejs.dev/)
 
-```
-src/
-├── content.ts              # Entry point - inicijalizuje FodmapHelper
-├── injector.ts             # Entry point - inicijalizuje ApiInterceptor
-├── main.ts                 # Entry point - inicijalizuje PopupController
-├── background.ts           # Entry point - inicijalizuje background services
-│
-├── types.ts                # Zajedničke TypeScript tipove i interfejse
-├── types/
-│   └── glovo.ts           # Glovo API tipovi i interfejsi
-│
-├── db.ts                   # Dexie baza definicija
-│
-# Content Script Components
-├── FodmapHelper.ts         # Glavna klasa koja orchestrira funkcionalnost
-├── StyleManager.ts         # CSS injection i vizuelni indikatori
-├── ProductManager.ts       # Operacije sa bazom podataka (Dexie)
-├── CardManager.ts          # DOM operacije na karticama proizvoda
-├── MessageHandler.ts       # Chrome extension messaging za content
-├── StorageManager.ts       # Chrome storage operacije
-│
-# Background Script Components
-├── SyncOrchestrator.ts     # Orchestrira background sync proces
-├── BackgroundMessageHandler.ts  # Chrome messaging za background
-├── ContentMessenger.ts     # Komunikacija sa content skriptama
-├── FodmapApiClient.ts      # API klijent za FODMAP klasifikaciju
-├── BackgroundLogger.ts     # Logger koji prosleđuje poruke content skripti
-│
-# Injector Components
-├── ApiInterceptor.ts       # Presretanje fetch/XHR zahteva
-├── ProductExtractor.ts     # Ekstraktovanje proizvoda iz API odgovora
-│
-# Popup Components
-└── PopupController.ts      # Popup UI kontroler
-```
+## Project Structure
+The project uses a modular architecture recommended by WXT, with a clear separation into entrypoints and utils.
+- **src/entrypoints**: Contains the main entry points for the extension, such as content scripts, background scripts, and popup.
+- **src/utils**: Contains utility functions and classes for handling common tasks like API requests, database operations, and DOM manipulation.
+- **src/types**: Contains TypeScript types and interfaces used
 
-## Instalacija i razvoj
+## Installation and Development
 
-### Potrebni alati
-- Node.js (verzija 18+)
-- pnpm
+### Required Tools
+- Volta - tool for managing Node.js versions and packages.
+- Node.js (version 22) - defined in `package.json` under `volta.node` key.
+- pnpm - package manager for Node.js projects.
 
 ### Setup
 
 ```bash
-# Kloniraj repo
-git clone <repo-url>
-cd glovo-fodmap-helper
+# Clone the repository
+git clone https://github.com/TerrorSquad/glovo-low-fodmap.git
+cd glovo-low-fodmap
 
-# Instaliraj dependencies
+# Install dependencies
 pnpm install
 
-# Build za development
+# Run the development server (with hot-reloading)
 pnpm run dev
 
-# Build za production
-pnpm run build
+# Build for production
+pnpm run build:prod
 ```
 
-## Učitavanje ekstenzije u Chrome
+## Loading the Extension in Chrome
+1. Run pnpm run build or pnpm run dev.
+2. Open chrome://extensions/.
+3. Enable "Developer mode".
+4. Click "Load unpacked" and select the .output/chrome-mv3 folder.
 
-1. Izvršite build (`pnpm run build`)
-2. Otvorite `chrome://extensions/`
-3. Uključite "Developer mode" 
-4. Kliknite "Load unpacked" i izaberite `dist/` folder
-
-## Konfiguracija
+## Configuration
 
 ### API Endpoint
 
-API endpoint se podešava u `src/background.ts`:
+The API endpoint is configured by creating a `.env` file in the project root:
+
+```bash
+VITE_API_ENDPOINT=https://your-api.com/classify
+```
+
+You can access this variable in your code using:
 
 ```typescript
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT
 ```
 
-Ili dodajte `.env` fajl:
+### Build configuration
 
-```
-VITE_API_ENDPOINT=https://your-api.com/classify
-```
+- **WXT**: wxt.config.ts - The main configuration file for the extension.
+- **TypeScript**: tsconfig.json - Options for the TypeScript compiler.
+- **Manifest**: Automatically generated from wxt.config.ts.
 
-### Build konfiguracija
+## Architecture
 
-- **Vite**: `vite.config.ts` - bundler konfiguracija
-- **TypeScript**: `tsconfig.json` - TypeScript compiler opcije
-- **Manifest**: `manifest.json` - Chrome extension manifest
+###  Data Flow
+- **Interception** (`injector.content`): The `ApiInterceptor` intercepts `fetch/XHR` calls from the Glovo site. The `ProductExtractor` extracts clean product data from the JSON response.
+- **Data Transfer** (`injector -> content`): The injector sends the product list to the content script via window.postMessage [cite: file-ProductExtractor.ts].
+# Glovo FODMAP Helper
 
-## Arhitektura
+A modern Chrome extension for displaying the FODMAP status of products on the Glovo application, built with WXT, Vue.js, and TypeScript.
 
-### Kompletno modularni pristup
+## Features
 
-Aplikacija je potpuno refaktorisana u modularne komponente za maksimalnu održivost:
+- **Automatic Labeling**: Displays the FODMAP status (`LOW`, `HIGH`, `MODERATE`, `UNKNOWN`) directly on the Glovo website.
+- **Visual Indicators**: Clear badges with icons and colors for each status.
+- **Dynamic Tooltips**: Provides additional information about the status, including explanations from the API, on hover.
+- **Filtering**: Option to hide products that are not LOW FODMAP, as well as those that are not food items.
+- **API Synchronization**: Uses a "submit-and-poll" pattern to send new products to an external API and periodically fetch updated statuses,.
+- **Local Database**: Efficiently stores product data in a local IndexedDB using Dexie.js.
+- **Advanced Settings**: The popup interface allows for adjusting dark mode and tooltip font size.
+- **Diagnostics**: Built-in debugging tools available in the popup for the development environment.
 
-#### Content Script Komponente
-- **FodmapHelper**: Glavna klasa koja koordiniše sve content script komponente
-- **StyleManager**: Statičke metode za CSS injection i styling
-- **ProductManager**: Statičke metode za operacije sa Dexie bazom
-- **CardManager**: DOM manipulacija kartica proizvoda  
-- **MessageHandler**: Centralizovano rukovanje Chrome porukama
-- **StorageManager**: Chrome storage wrapper metode
+## Tech Stack
+- Framework: [WXT (Web Extension Toolkit)](https://wxt.dev/)
+- UI: [Vue.js](https://vuejs.org/)
+- Language: [TypeScript](https://www.typescriptlang.org/)
+- Styling: [TailwindCSS](https://tailwindcss.com/)
+- Local Database: [Dexie.js (Wrapper for IndexedDB)](https://dexie.org/)
+- Linting & Formatting: [Biome](https://biomejs.dev/)
 
-#### Background Script Komponente  
-- **SyncOrchestrator**: Koordiniše celokupan sync proces
-- **BackgroundMessageHandler**: Rukuje Chrome runtime porukama
-- **ContentMessenger**: Komunikacija sa content skriptama
-- **FodmapApiClient**: HTTP klijent za FODMAP API
-- **BackgroundLogger**: Logger koji prosleđuje poruke content skripti
+## Project Structure
+The project uses a modular architecture recommended by WXT, with a clear separation into entrypoints and utils.
+- **src/entrypoints**: Contains the main entry points for the extension, such as content scripts, background scripts, and popup.
+- **src/utils**: Contains utility functions and classes for handling common tasks like API requests, database operations, and DOM manipulation.
+- **src/types**: Contains TypeScript types and interfaces used
 
-#### Injector Komponente
-- **ApiInterceptor**: Presretanje fetch/XHR zahteva na Glovo stranici
-- **ProductExtractor**: Ekstraktovanje proizvoda iz API odgovora
+## Installation and Development
 
-#### Popup Komponente
-- **PopupController**: Kompletan UI kontroler za popup
+### Required Tools
+- Volta - tool for managing Node.js versions and packages.
+- Node.js (version 22) - defined in `package.json` under `volta.node` key.
+- pnpm - package manager for Node.js projects.
 
-### Tipovi i interfejsi
-
-- **types.ts**: Zajedničke tipove kroz celu aplikaciju
-- **types/glovo.ts**: Specifične Glovo API tipove i interfejse
-
-### Event Flow sa modularnim komponentama
-
-1. **ApiInterceptor** presreće Glovo API pozive
-2. **ProductExtractor** ekstraktuje proizvode iz odgovora  
-3. **FodmapHelper** prima podatke preko `window.postMessage`
-4. **ProductManager** čuva nove proizvode u Dexie bazu
-5. **BackgroundMessageHandler** prima notifikaciju o novim proizvodima
-6. **SyncOrchestrator** koordiniše API poziv preko **FodmapApiClient**-a
-7. **ContentMessenger** šalje rezultate nazad content skripti
-8. **ProductManager** ažurira statuse u bazi
-9. **CardManager** aplicira vizuelne stilove preko **StyleManager**-a
-
-## Development
-
-### Dodavanje novih funkcionalnosti
-
-#### Content Script funkcionalnosti:
-1. Dodajte tipove u `types.ts` ako je potrebno
-2. Implementirajte logiku u odgovarajućem manager-u:
-   - **UI/Styling** → `StyleManager.ts` ili `CardManager.ts`
-   - **Baza podataka** → `ProductManager.ts`
-   - **Chrome poruke** → `MessageHandler.ts`
-   - **Storage** → `StorageManager.ts`
-3. Ažurirajte `FodmapHelper.ts` da koristi novu funkcionalnost
-
-#### Background Script funkcionalnosti:
-1. **API komunikacija** → `FodmapApiClient.ts`
-2. **Sync logika** → `SyncOrchestrator.ts`  
-3. **Chrome poruke** → `BackgroundMessageHandler.ts`
-4. **Content komunikacija** → `ContentMessenger.ts`
-
-#### Injector funkcionalnosti:
-1. **API presretanje** → `ApiInterceptor.ts`
-2. **Ekstraktovanje podataka** → `ProductExtractor.ts`
-
-#### Popup funkcionalnosti:
-1. **UI kontrola** → `PopupController.ts`
-
-### Debugging
-
-Source maps su omogućeni u development build-u za lakše debugovanje svih komponenti.
-
-### Testing
+### Setup
 
 ```bash
-# Pokretanje linter-a
-pnpm run lint
+# Clone the repository
+git clone https://github.com/TerrorSquad/glovo-low-fodmap.git
+cd glovo-low-fodmap
 
-# Type checking  
-pnpm run type-check
+# Install dependencies
+pnpm install
 
-# Build test
+# Chrome: Run the development server (with hot-reloading)
+pnpm run dev
+# Chrome: Production build in development mode
 pnpm run build
+# Chrome: Build for production
+pnpm run build:prod
+# Chrome: Create a zip file for distribution
+pnpm run zip
+
+# Firefox: Run the development server (with hot-reloading)
+pnpm run dev:firefox
+# Firefox: Production build in development mode
+pnpm run build:firefox
+# Firefox: Build for production
+pnpm run build:prod:firefox
+# Firefox: Create a zip file for distribution
+pnpm run zip:firefox
+
+# Run TypeScript compiler
+pnpm run compile
 ```
 
-### Prednosti nove arhitekture
+## Loading the Extension in Chrome
+1. Run `pnpm run build` or `pnpm run dev`.
+2. Open `chrome://extensions/`.
+3. Enable "Developer mode".
+4. Click "Load unpacked" and select the `dist/chrome-mv3` folder.
 
-- ✅ **Single Responsibility Principle**: Svaka klasa ima jednu odgovornost
-- ✅ **Separation of Concerns**: UI, logika, storage i komunikacija su razdvojeni
-- ✅ **Testability**: Svaka komponenta može biti nezavisno testirana
-- ✅ **Maintainability**: Lakše dodavanje novih funkcionalnosti
-- ✅ **Type Safety**: Kompletna TypeScript podrška
-- ✅ **Code Reusability**: Zajedničke komponente mogu biti ponovo korišćene
-- ✅ **Error Isolation**: Greške u jednoj komponenti ne utiču na druge
+## Configuration
+
+### API Endpoint
+
+The API endpoint is configured by creating a `.env` file in the project root:
+
+```bash
+VITE_API_ENDPOINT=https://your-api.com/
+```
+
+You can access this variable in your code using:
+
+```typescript
+const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT
+```
+
+### Build configuration
+
+- **WXT**: `wxt.config.ts` - The main configuration file for the extension.
+- **TypeScript**: `tsconfig.json` - Options for the TypeScript compiler.
+- **Manifest**: Automatically generated from `wxt.config.ts`.
+
+## Architecture
+
+###  Data Flow
+- **Interception** (`injector.content`): The `ApiInterceptor` intercepts `fetch/XHR` calls from the Glovo site. The `ProductExtractor` extracts clean product data from the JSON response.
+- **Data Transfer** (`injector -> content`): The injector sends the product list to the `content` script via `window.postMessage`.
+- **Database Write** (`content`): The `FodmapHelper` receives the data. The `ProductManager` checks for new products and writes them to the IndexedDB with a PENDING status.
+- **Signal to Background** (`content -> background`): The content script sends a newProductsFound message to the background script.
+- **Synchronization** (`background`): The `SyncOrchestrator` receives the signal and calls the `FodmapApiClient`, which sends the PENDING products to the Laravel API.
+- **Status Update** (`background -> content`): After receiving a response from the API, the background script sends an updateStatuses message with the new data back to the content script.
+- **Display on Page** (`content`): The `ProductManager` updates the statuses in the local database. The `CardManager` and `StyleManager` then apply the appropriate styles (badges, highlights) to the products on the page.
+
+### Architectural Advantages
+- ✅ Single Responsibility Principle: Each class has one, clearly defined responsibility.
+- ✅ Separation of Concerns: UI, logic, database, and network communication are completely separate.
+- ✅ Testability: Each component can be tested independently, as demonstrated by `ExtensionTester.ts`.
+- ✅ Maintainability: The structure allows for easy addition of new features and debugging.
+- ✅ Type Safety: The entire project is written in TypeScript with strict rules.
